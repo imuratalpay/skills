@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light dark"><title>After</title>
+<link rel="stylesheet" href="tokens.css"><style>
+/* Spacing was not measured: everything below is a multiple of the line it sits on (lh). */
+body { margin: 0; }
+article { max-width: var(--mt-measure); margin-inline: auto; padding-block: 3lh 2lh; }
+:where(article) :where(h1, h2, p, figure) { margin: 0; }
+article > * + * { margin-block-start: 1lh; }
+article > h2 { margin-block-start: 1.5lh; }
+article > h2 + p { margin-block-start: 0.25lh; }
+.date { color: var(--mt-fg-3); }
+figure { margin-block-start: 1.5lh; }
+table { width: 100%; border-collapse: collapse; font-size: var(--mt-small); line-height: var(--mt-small-lh); }
+th { text-align: start; padding-block-end: 0.5lh; border-block-end: 1px solid var(--mt-fg-5); }
+td { padding-block: 0.25lh; }
+tbody tr:first-child td { padding-block-start: 0.5lh; }
+td:first-child { color: var(--mt-fg-1); font-weight: var(--mt-w-ui); }
+:is(th, td):not(:first-child) { text-align: end; }
+figcaption { margin-block-start: 0.5lh; font-size: var(--mt-meta); line-height: var(--mt-meta-lh); color: var(--mt-fg-3); }
+article > .sign { margin-block-start: 1.5lh; }
+</style></head><body class="mt"><article>
+  <header>
+    <h1 class="mt-h-same">Ghost cursors in component demos</h1>
+    <p class="date"><time datetime="2026-11-18">18 November 2026</time> · 4 min read</p>
+  </header>
+  <p>A screenshot of a toggle shows two states. It can’t show <em>the moment in between</em>, and that moment is the reason the demo exists. So I record a real cursor moving through the real DOM and replay it on the page. When the reader moves their own mouse, the recording stops and hands over.</p>
+  <h2 class="mt-h-same">How it works</h2>
+  <p>The engine replays pointer events through springs, so timing survives re-renders. Call <code>replay(recording)</code> to start it. Playback pauses when the demo scrolls offscreen and never starts under reduced motion. A recording is a JSON array of pointer events, and the <a href="#format">format</a> fits on one screen.</p>
+  <figure>
+    <table>
+      <thead><tr><th>Demo</th><th>Events</th><th>Duration</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td>Toggle</td><td>148</td><td>3.2&nbsp;s</td><td>11.4&nbsp;KB</td></tr>
+        <tr><td>Dropdown</td><td>1,206</td><td>9.8&nbsp;s</td><td>87.1&nbsp;KB</td></tr>
+        <tr><td>Slider</td><td>377</td><td>5.0&nbsp;s</td><td>24.9&nbsp;KB</td></tr>
+      </tbody>
+    </table>
+    <figcaption>Three recordings from this site. Size is gzipped.</figcaption>
+  </figure>
+  <p class="sign"><span class="script">murat</span></p>
+</article></body></html>

@@ -1,0 +1,21 @@
+<article>
+  <header>
+    <h1>Ghost cursors in component demos</h1>
+    <p class="date"><time datetime="2026-11-18">18 November 2026</time> · 4 min read</p>
+  </header>
+  <p>A screenshot of a toggle shows two states. It can’t show <em>the moment in between</em>, and that moment is the reason the demo exists. So I record a real cursor moving through the real DOM and replay it on the page. When the reader moves their own mouse, the recording stops and hands over.</p>
+  <h2>How it works</h2>
+  <p>The engine replays pointer events through springs, so timing survives re-renders. Call <code>replay(recording)</code> to start it. Playback pauses when the demo scrolls offscreen and never starts under reduced motion. A recording is a JSON array of pointer events, and the <a href="#format">format</a> fits on one screen.</p>
+  <figure>
+    <table>
+      <thead><tr><th>Demo</th><th>Events</th><th>Duration</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td>Toggle</td><td>148</td><td>3.2&nbsp;s</td><td>11.4&nbsp;KB</td></tr>
+        <tr><td>Dropdown</td><td>1,206</td><td>9.8&nbsp;s</td><td>87.1&nbsp;KB</td></tr>
+        <tr><td>Slider</td><td>377</td><td>5.0&nbsp;s</td><td>24.9&nbsp;KB</td></tr>
+      </tbody>
+    </table>
+    <figcaption>Three recordings from this site. Size is gzipped.</figcaption>
+  </figure>
+  <p class="sign"><span class="script">murat</span></p>
+</article>
