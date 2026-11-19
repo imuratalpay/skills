@@ -1,0 +1,816 @@
+@import "tailwindcss";
+/* In the components layer, so utilities passed through className win over the library's defaults. */
+@import "@imuratalpay/ghost-cursor/styles.css" layer(components);
+
+/*
+ * The ghost can't trigger :hover, :active or :focus, so it mirrors them as attributes.
+ * Overriding the variants keeps components written with plain hover:, active: and focus:.
+ */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+  &[data-ghost-hover] {
+    @slot;
+  }
+}
+
+@custom-variant active {
+  &:active {
+    @slot;
+  }
+  &[data-ghost-active] {
+    @slot;
+  }
+}
+
+@custom-variant focus {
+  &:focus {
+    @slot;
+  }
+  &[data-ghost-focus] {
+    @slot;
+  }
+}
+
+@custom-variant focus-within {
+  &:focus-within {
+    @slot;
+  }
+  &:has([data-ghost-focus]) {
+    @slot;
+  }
+}
+
+/* Type and greys follow type-taste. Surfaces and lines are by eye: type-taste has no values for them. */
+:root {
+  --bg: #fcfcfc;
+  --fg-1: #202020;
+  --fg-2: #424242;
+  --fg-3: #6f6f6f;
+  --fg-4: #a0a0a0;
+  --fg-5: #c7c7c7;
+
+  --surface: #ffffff;
+  --stage: #f4f4f4;
+  /* Code wells are the same surface as stages; one grey, two names (ghost-cursor uses both). */
+  --code: var(--stage);
+  --line: rgb(0 0 0 / 0.08);
+  --line-strong: rgb(0 0 0 / 0.15);
+  --tint: rgb(0 0 0 / 0.045);
+  --track: #d6d6d6;
+  --switch-on: #202020;
+  --switch-thumb: #ffffff;
+  --tile-a: #ececec;
+  --tile-b: #e1e1e1;
+  --lift: 0 1px 2px rgb(0 0 0 / 0.05);
+  --pop: 0 8px 24px -6px rgb(0 0 0 / 0.16);
+  --scrim: rgb(0 0 0 / 0.2);
+
+  /* Dividers: 0.5px on high-density screens, 1px elsewhere. */
+  --hairline: 1px;
+}
+
+@media (min-resolution: 2dppx) {
+  :root {
+    --hairline: 0.5px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --fg-1: #eeeeee;
+    --fg-2: #dadada;
+    --fg-3: #b6b6b6;
+    --fg-4: #7c7c7c;
+    --fg-5: #3a3a3a;
+
+    --surface: #1d1d1d;
+    --stage: #171717;
+    --line: rgb(255 255 255 / 0.08);
+    --line-strong: rgb(255 255 255 / 0.15);
+    --tint: rgb(255 255 255 / 0.06);
+    --track: #3a3a3a;
+    --switch-on: #9a9a9a;
+    --switch-thumb: #f2f2f2;
+    --tile-a: #262626;
+    --tile-b: #2d2d2d;
+    /* Shadows don't read on dark surfaces; the 1px line carries the edge instead. */
+    --lift: 0 0 #0000;
+    --pop: 0 0 #0000;
+    --scrim: rgb(0 0 0 / 0.5);
+  }
+}
+
+/*
+ * Motion tokens: the one set every animation reads. The scale is transitions.dev's; the curves are
+ * the site's own. Pick a token by what the motion is for (the comments), not by the nearest number.
+ * Nothing else in the codebase writes a duration or a curve. Opens are slower than closes.
+ *
+ * Curves are in @theme, so Tailwind's ease-* utilities use them; durations are read with
+ * duration-(--duration-quick) and in TS through lib/motion.ts.
+ */
+@theme static {
+  /* Entering and leaving, hover color, a sliding indicator. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Something on screen moving or swapping in place: icon swap, text swap, the demo sweeps. */
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  /* The menu sheet only: a steep start for a long travel. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Constant motion only: the marquee and progress that stands for time. */
+  --ease-linear: linear;
+}
+
+:root {
+  --duration-instant: 0ms; /* a discrete switch that still runs as an animation (the typed demo) */
+  --duration-quick: 150ms; /* hover and press, dialog close, accordion close, tooltip appear, text swap */
+  --duration-fast: 250ms; /* dialog open, accordion open, icon swap, sliding indicator, hover-in, sheet close */
+  --duration-medium: 350ms; /* sheet open, hover-out */
+  --duration-settle: 500ms; /* a spring back after a stretch (the iOS rubber band) */
+
+  --distance-micro: 4px; /* text swap, accordion content */
+  --distance-nudge: 2px; /* an arrow leaning toward where it goes */
+
+  --scale-dialog: 0.96; /* dialog open and close */
+  --scale-press: 0.97; /* :active on buttons */
+  --scale-press-large: 0.98; /* :active on cards */
+  --scale-tooltip: 0.98; /* tooltip open */
+  --scale-icon-swap: 0.25; /* the icon that's leaving */
+
+  --marquee-duration: 60s; /* one loop of the prompt marquee */
+
+  /* Demo timelines: how the recorded runs replay, not UI feedback. */
+  --demo-lead: 600ms; /* before the before/after tile first sweeps */
+  --demo-sweep: 1400ms; /* one sweep of the before/after divider */
+  --demo-hold: 1000ms; /* a pause at each end of the sweep */
+  --demo-wipe: 900ms; /* a playground before ↔ after wipe */
+
+  /* Timers: how long the interface waits for intent or holds a state. Not motion, so reduced motion keeps them. */
+  --delay-hover-intent: 100ms; /* a decorative hover takes over after the mouse rests this long */
+  --delay-tooltip: 500ms; /* the first tooltip */
+  --delay-tooltip-warm: 300ms; /* later tooltips open at once within this window */
+  --hold-copied: 1500ms; /* the check after a copy */
+}
+
+/* Reduced motion is instant: every token goes to zero, so nothing that reads them moves. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-quick: 0ms;
+    --duration-fast: 0ms;
+    --duration-medium: 0ms;
+    --duration-settle: 0ms;
+    --demo-lead: 0ms;
+    --demo-sweep: 0ms;
+    --demo-hold: 0ms;
+    --demo-wipe: 0ms;
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+
+  --color-bg: var(--bg);
+  --color-fg-1: var(--fg-1);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-fg-4: var(--fg-4);
+  --color-fg-5: var(--fg-5);
+  --color-surface: var(--surface);
+  --color-stage: var(--stage);
+  --color-code: var(--code);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-tint: var(--tint);
+  --color-track: var(--track);
+  --color-switch-on: var(--switch-on);
+  --color-switch-thumb: var(--switch-thumb);
+
+  --font-weight-ui: 450;
+  --font-weight-heading: 550;
+  --font-weight-display: 590;
+
+  /* The type scale: type-taste's roles, each size with its measured line-height. Nothing else is used. */
+  --text-display: 48px;
+  --text-display--line-height: 48px;
+  --text-display--letter-spacing: -0.022em;
+  --text-title: 24px;
+  --text-title--line-height: 32px;
+  --text-title--letter-spacing: -0.3px;
+  --text-prose: 16px;
+  --text-prose--line-height: 26px;
+  --text-ui: 15px;
+  --text-ui--line-height: 24px;
+  --text-secondary: 14px;
+  --text-secondary--line-height: 22.75px;
+  --text-meta: 13px;
+  --text-meta--line-height: 21.125px;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+
+  /*
+   * One surface recipe. Raised: cards, pills and buttons. Well: code boxes, stages and fields.
+   * Overlay: the dialog and the menu sheet. Selected states use bg-tint and no edge.
+   * In dark, --lift and --pop are empty, so every recipe is the 1px ring alone.
+   */
+  --shadow-raised: 0 0 0 1px var(--line), var(--lift);
+  --shadow-raised-hover: 0 0 0 1px var(--line-strong), var(--lift);
+  --shadow-well: inset 0 0 0 1px var(--line);
+  --shadow-overlay: 0 0 0 1px var(--line), var(--pop);
+}
+
+/* The library's colors, mapped onto the site's tokens so demos follow the color scheme. */
+.gc-root {
+  --gc-fg: var(--fg-1);
+  --gc-muted: var(--fg-3);
+  --gc-stage: var(--stage);
+  --gc-surface: var(--surface);
+  --gc-line: var(--line);
+  --gc-line-strong: var(--line-strong);
+  --gc-tint: var(--tint);
+  --gc-track: var(--line-strong);
+  --gc-fill: var(--fg-3);
+  --gc-lift: var(--lift);
+  --gc-strong-fg: var(--fg-1);
+  --gc-strong-bg: var(--surface);
+  --gc-strong-ring: 0 0 0 1px var(--fg-3);
+}
+
+html {
+  background: var(--bg);
+  /* Short and long pages keep the same content edge whether or not a scrollbar shows. */
+  scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* Landscape phones put the notch on a side; everything inside pads past it. 0 elsewhere. */
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv01", "ss03";
+  font-synthesis: none;
+  font-size: 16px;
+  line-height: 26px;
+  font-weight: 400;
+  color: var(--fg-2);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+b,
+strong {
+  font-weight: 550;
+  color: var(--fg-1);
+}
+
+em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 430;
+  font-size: 1.07em;
+  line-height: 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.8125em;
+  line-height: 0;
+  color: var(--fg-1);
+}
+
+/*
+ * kbd takes its type from where it sits; chips style themselves with utilities.
+ * In the base layer, so those utilities win. Preflight resets features on kbd; inherit Inter's.
+ */
+@layer base {
+  kbd {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    font-feature-settings: inherit;
+    background: none;
+  }
+}
+
+/* The search field: 16px on touch so iOS doesn't zoom in, 15px with a fine pointer. */
+input.search-input {
+  font-size: 16px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  input.search-input {
+    font-size: 15px;
+  }
+}
+
+/* A block of code is its own line box, so the inline rule above doesn't apply to it. */
+pre,
+.code-line {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 21.125px;
+  color: var(--fg-1);
+}
+
+pre code,
+.code-line code {
+  display: block;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+th,
+.label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+table,
+time,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Prose links: a quiet 1px underline that takes the text color on hover. */
+.link {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--fg-5);
+  transition: text-decoration-color var(--duration-quick) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .link:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+/* iOS zooms into any input under 16px and never zooms back. */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+button,
+a,
+input,
+[role="button"],
+[role="slider"] {
+  touch-action: manipulation;
+}
+
+button,
+[role="button"] {
+  user-select: none;
+}
+
+/* Links that act as controls (nav items, rows, pills): no text selection or callout on long-press. */
+@utility control {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+::selection {
+  background: var(--tint);
+  color: var(--fg-1);
+}
+
+/* Keyboard focus only, never on a mouse click. In the base layer so a component can replace it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--fg-1);
+    outline-offset: 2px;
+  }
+}
+
+/* Room for the sticky header when a link jumps to a section. */
+[id] {
+  scroll-margin-top: 88px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+pre::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 4px;
+}
+
+/* Prompt marquee on the overview (components/prompt-marquee.tsx). */
+.marquee-row {
+  overflow: hidden;
+  /* Room for the pills' hairline and the focus outline, which overflow would clip. */
+  padding-block: 4px;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--marquee-duration) var(--ease-linear) infinite;
+}
+
+.marquee-track[data-reverse] {
+  animation-direction: reverse;
+}
+
+/* The trailing padding equals the gap, so both copies are the same width and -50% lands on the seam. */
+.marquee-list {
+  display: flex;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.marquee:focus-within .marquee-track,
+.marquee[data-offscreen] .marquee-track {
+  animation-play-state: paused;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .marquee:hover .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-row {
+    overflow: visible;
+    mask-image: none;
+  }
+  .marquee-track {
+    width: auto;
+    animation: none;
+  }
+  .marquee-list {
+    flex-wrap: wrap;
+    padding-right: 0;
+  }
+  .marquee-list[data-copy] {
+    display: none;
+  }
+}
+
+/* Dialogs: search and the mobile menu. Native <dialog> gives focus trapping and Escape. */
+dialog::backdrop {
+  background: var(--scrim);
+}
+
+/*
+ * Menu sheet: transitions.dev's panel reveal, sideways and without the blur. It slides in on the
+ * drawer curve and leaves faster on ease-out; the backdrop shares both timings.
+ */
+.sheet,
+.sheet::backdrop {
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
+  transition-behavior: allow-discrete;
+}
+
+.sheet {
+  transition-property: translate, display, overlay;
+  translate: 100% 0;
+}
+
+.sheet::backdrop {
+  transition-property: opacity, display, overlay;
+  opacity: 0;
+}
+
+.sheet[open],
+.sheet[open]::backdrop {
+  transition-duration: var(--duration-medium);
+  transition-timing-function: var(--ease-drawer);
+}
+
+.sheet[open] {
+  translate: 0 0;
+}
+
+.sheet[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .sheet[open] {
+    translate: 100% 0;
+  }
+  .sheet[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/*
+ * Search dialog: transitions.dev's modal. Opened with a click it scales up from 0.96 and fades in;
+ * it leaves faster at the same scale. The backdrop shares its timing. Opened from the keyboard
+ * (⌘K, /) it's instant ([data-instant]): keyboard users are already ahead of any animation.
+ */
+.search-dialog,
+.search-dialog::backdrop {
+  opacity: 0;
+  transition-duration: var(--duration-quick);
+  transition-timing-function: var(--ease-out);
+  transition-behavior: allow-discrete;
+}
+
+.search-dialog {
+  scale: var(--scale-dialog);
+  transition-property: opacity, scale, display, overlay;
+}
+
+.search-dialog::backdrop {
+  transition-property: opacity, display, overlay;
+}
+
+.search-dialog[open],
+.search-dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--duration-fast);
+}
+
+.search-dialog[open] {
+  scale: 1;
+}
+
+@starting-style {
+  .search-dialog[open],
+  .search-dialog[open]::backdrop {
+    opacity: 0;
+  }
+  .search-dialog[open] {
+    scale: var(--scale-dialog);
+  }
+}
+
+.search-dialog[data-instant],
+.search-dialog[data-instant]::backdrop {
+  transition-duration: var(--duration-instant);
+}
+
+/*
+ * Icon swap (components/icon-swap.tsx): transitions.dev's icon swap without the blur. Both icons
+ * stay mounted in one cell; the leaving one fades and shrinks to 0.25. Symmetric, on ease-in-out.
+ */
+.icon-swap {
+  display: grid;
+}
+
+.icon-swap > span {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  transition-property: opacity, scale;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-in-out);
+}
+
+.icon-swap > span:last-child,
+.icon-swap[data-on] > span:first-child {
+  opacity: 0;
+  scale: var(--scale-icon-swap);
+}
+
+.icon-swap[data-on] > span:last-child {
+  opacity: 1;
+  scale: 1;
+}
+
+/*
+ * Tooltips (components/tooltip.tsx): transitions.dev's tooltip. A quick fade and scale from the
+ * trigger side on the way in; gone at once on the way out. The delays live in --delay-tooltip*.
+ */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 10;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  color: var(--fg-1);
+  font-size: 13px;
+  line-height: 21.125px;
+  white-space: nowrap;
+  pointer-events: none;
+  transform-origin: bottom center;
+  opacity: 0;
+  scale: var(--scale-tooltip);
+}
+
+.tooltip[data-open] {
+  opacity: 1;
+  scale: 1;
+  transition-property: opacity, scale;
+  transition-duration: var(--duration-quick);
+  transition-timing-function: var(--ease-out);
+}
+
+.tooltip[data-instant] {
+  transition-duration: var(--duration-instant);
+}
+
+/* Sidebar: transitions.dev's sliding tabs. The pill glides between items on a pointer navigation. */
+.nav-pill[data-animate] {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+/*
+ * FAQ (components/faq.tsx): transitions.dev's accordion. The panel's grid row goes 0fr → 1fr, so any
+ * answer animates without measuring; padding sits on the answer, never on the track, or the row
+ * can't close fully. The answer fades and rises 4px, the chevron turns 180°. Opening takes longer
+ * than closing.
+ */
+.faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-quick) var(--ease-out);
+}
+
+.faq-panel > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.faq-answer {
+  opacity: 0;
+  translate: 0 var(--distance-micro);
+  transition-property: opacity, translate;
+  transition-duration: var(--duration-quick);
+  transition-timing-function: var(--ease-out);
+}
+
+.faq-chevron {
+  transition: rotate var(--duration-quick) var(--ease-out);
+}
+
+.faq[data-open] .faq-panel {
+  grid-template-rows: 1fr;
+  transition-duration: var(--duration-fast);
+}
+
+.faq[data-open] .faq-answer {
+  opacity: 1;
+  translate: 0 0;
+  transition-duration: var(--duration-fast);
+}
+
+.faq[data-open] .faq-chevron {
+  rotate: 180deg;
+  transition-duration: var(--duration-fast);
+}
+
+.faq[data-instant] .faq-panel,
+.faq[data-instant] .faq-answer,
+.faq[data-instant] .faq-chevron {
+  transition-duration: var(--duration-instant);
+}
+
+/*
+ * Playground: every timed change is a CSS animation, so one attribute pauses the whole scene.
+ * Each animation only declares its start; the element's own styles are the end state, which is
+ * also what reduced motion shows.
+ */
+.pg[data-paused] *,
+.pg[data-paused] *::before,
+.pg[data-paused] *::after {
+  animation-play-state: paused !important;
+}
+
+/* A phase picked while paused shows its end state. Layers that aren't the current phase never replay. */
+.pg[data-instant] .pg-scene *,
+.pg-static * {
+  animation: none !important;
+}
+
+.pg[data-instant] .pg-divider {
+  display: none;
+}
+
+@keyframes pg-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes pg-wipe-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+@keyframes pg-wipe-out {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes pg-divider-in {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  98% {
+    opacity: 1;
+  }
+}
+
+@keyframes pg-divider-out {
+  from {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+  98% {
+    opacity: 1;
+  }
+}
+
+@keyframes pg-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pg-fade-out {
+  from {
+    opacity: 1;
+  }
+}
+
+@keyframes pg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--distance-micro));
+  }
+}
+
+@keyframes pg-type {
+  from {
+    visibility: hidden;
+  }
+}
+
+/*
+ * Reduced motion: the tokens are already zero, so every transition above lands at once. What's left
+ * is what a zero duration can't express: staggered delays, the wipe's divider, and press scales.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .pg .pg-divider {
+    display: none;
+  }
+  .pg .pg-rise,
+  .pg .pg-type {
+    animation: none !important;
+  }
+  button:active,
+  a:active {
+    scale: 1 !important;
+  }
+}
