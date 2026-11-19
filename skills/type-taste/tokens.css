@@ -16,7 +16,7 @@
   --mt-script: "Caveat", cursive;                               /* or Momo Signature (muratalpay.me) */
   --mt-features: "cv01", "ss03";                                /* emilkowal.ski, linear */
 
-  /* size / line-height: measured pairs, always set together */
+  /* size / line-height: px pairs, always set together */
   --mt-prose: 16px;    --mt-prose-lh: 26px;       /* interfaces, joshpuckett */
   --mt-prose-lg: 17px; --mt-prose-lg-lh: 27.625px; /* jakub.kr */
   --mt-ui: 15px;       --mt-ui-lh: 24px;          /* linear, interfere */
@@ -39,10 +39,10 @@
   /* tracking */
   --mt-track-display: -0.022em; /* muwrites -1.06px @48, linear -1.408px @64 */
   --mt-track-step: -0.3px;      /* interfaces h1 */
-  --mt-track-label: 0.3px;      /* interfaces mono label; measured range 0.3–0.66px */
+  --mt-track-label: 0.3px;      /* mono label range 0.3–0.66px */
 
   --mt-em-size: 1.07em;   /* benji: Newsreader 15px inside 14px body */
-  --mt-measure: 644px;    /* Emil, jakub.kr; measured range 548–672px */
+  --mt-measure: 644px;    /* range 548–672px */
 
   /* grey ladder, light. contrast on bg in brackets */
   --mt-bg: #fcfcfc;   /* rauno, jakub.kr rgb(252) */
@@ -59,7 +59,7 @@
     --mt-fg-2: #dadada; /* interfaces lab L87 [13.4] */
     --mt-fg-3: #b6b6b6; /* interfaces lab L74 [9.2]  */
     --mt-fg-4: #7c7c7c; /* interfaces lab L52 [4.49, fails AA as text] */
-    --mt-fg-5: #3a3a3a; /* not measured; picked by eye */
+    --mt-fg-5: #3a3a3a; /* picked by eye */
   }
 }
 

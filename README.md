@@ -11,7 +11,7 @@ One command installs every skill in `skills/`. Run it again to pick up new ones.
 | Skill | What it does | When it runs |
 |---|---|---|
 | [`/ui-diff`](skills/ui-diff/SKILL.md) | Before, after and diff screenshots of a UI pull request, in one sticky PR comment. | On its own when a PR or branch changes UI, or when you type `/ui-diff` |
-| [`/type-taste`](skills/type-taste/SKILL.md) | Measured type values: Inter, a serif italic for emphasis, and grey before weight before size. | On its own for any typography work, or when you type `/type-taste` |
+| [`/type-taste`](skills/type-taste/SKILL.md) | My type values: Inter, a serif italic for emphasis, and grey before weight before size. | On its own for any typography work, or when you type `/type-taste` |
 | [`/ghost-record`](skills/ghost-record/SKILL.md) | Records a ghost-cursor demo of a React component from one sentence. | Only when you type `/ghost-record` (`$ghost-record` in Codex) |
 
 ## /ui-diff
@@ -25,7 +25,7 @@ Show me what my branch changes visually before I open the PR.
 
 ## /type-taste
 
-Typography values measured on 18 sites I like. Quiet Inter at reading size, a real serif italic for emphasis, mono for code and labels, hierarchy from grey first, weight second, size last. Ships `tokens.css`, a Tailwind and `next/font` setup, and a browser-console audit.
+Murat's typography taste, refined over years of shipping interfaces. Quiet Inter at reading size, a real serif italic for emphasis, mono for code and labels, hierarchy from grey first, weight second, size last. Ships `tokens.css`, a Tailwind and `next/font` setup, and a browser-console audit.
 
 ```
 /type-taste fix the typography on this page

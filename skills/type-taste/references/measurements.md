@@ -1,6 +1,6 @@
-# Typography measurements for type-taste
+# Typography notes for type-taste
 
-Raw input for a personal typography taste skill. Values are measured, not invented. If something could not be measured, that is stated.
+Reference notes behind Murat's typography taste, refined over years of shipping interfaces. Where a value was set by eye, that is stated.
 
 ## Method
 
@@ -538,11 +538,11 @@ Source: Murat’s private capture of the login-gated manual (not included). Load
 
 ---
 
-## Cross-site patterns (taste candidates)
+## Patterns
 
-Counts are out of **18 sites**. A site is counted only when the pattern was actually observed (or, for interfaces.dev, stated in Murat’s capture). Declared-but-unused fonts are not counted. Related-but-weaker evidence is called out.
+Labels describe how firmly each pattern sits in this taste, not a score. A pattern is noted only when it was actually observed (or, for interfaces.dev, stated in Murat’s capture). Declared-but-unused fonts are ignored. Weaker related cases are called out.
 
-### 1. Inter (or Inter Variable) as the workhorse sans — **11 / 18**
+### 1. Inter (or Inter Variable) as the workhorse sans — **common**
 
 Observed as the main UI and/or body face on: emilkowal.ski, muwrites.dev (body), muratalpay.me, linear.app, interfere.com, jakubantalik.com, libraries.dev, transitions.dev, jakub.kr, interfaces.dev, benji.org.
 
@@ -550,11 +550,11 @@ Not Inter: rauno.me and polar.sh (PP Neue Montreal), mutype.vercel.app (Geist on
 
 **Evidence:** woff2 name tables + computed families above.
 
-### 2. Allo as a friendly Inter-derived UI face, with intermediate weights — **2 / 18** (plus the Allo specimen itself)
+### 2. Allo as a friendly Inter-derived UI face, with intermediate weights — **occasional** (plus the Allo specimen itself)
 
 joshpuckett.me uses Allo Variable Friendly (`opsz`+`wght`, weight **420** body, 600 headings, `text-wrap: pretty`). allo.joshpuckett.me uses the full variable with an extra **`ROND`** axis and many half-weights (420, 550, 620, 650…). Copyright on both files credits Josh Puckett and the Inter project.
 
-### 3. A real italic serif used for emphasis, not a sloped sans — **5 / 18**
+### 3. A real italic serif used for emphasis, not a sloped sans — **occasional**
 
 - emilkowal.ski: Tiempos Text italic for `em`, Heldane Text for pull quotes
 - interfaces.dev: Heldane accents (capture)
@@ -562,85 +562,85 @@ joshpuckett.me uses Allo Variable Friendly (`opsz`+`wght`, weight **420** body, 
 - rauno.me: Georgia italic `em` in the essay
 - benji.org: Newsreader italic (`opsz` 10) for “too much”
 
-Heldane files also loaded on interfere.com but were not seen in computed text, so Interfere is not counted. Cormorant loaded on joshpuckett.me home but was not used there.
+Heldane files also loaded on interfere.com but were not seen in computed text. Cormorant loaded on joshpuckett.me home but was not used there.
 
-### 4. A script or handwriting accent at text size — **3 / 18**
+### 4. A script or handwriting accent at text size — **occasional**
 
 muratalpay.me (Momo Signature “Murat” at 15px), devouringdetails.com (Caveat 24px annotations), benji.org (Biro Script Plus “fair warning”).
 
-### 5. A dedicated mono for code and/or metadata labels — **10 / 18**
+### 5. A dedicated mono for code and/or metadata labels — **common**
 
 Observed in computed styles: interfaces.dev (Berkeley Mono, capture), jakub.kr (Berkeley Mono labels + code), linear.app (Berkeley Mono caps labels + code), polar.sh (Geist Mono), devouringdetails.com (JetBrains Mono), libraries.dev (Roboto Mono), transitions.dev (Roboto Mono), modal.com (DM Mono), benji.org (SF Mono, system stack), allo.joshpuckett.me (Allo itself with `tabular-nums` on the npm line — weaker, not a second family).
 
-Counted as 9 solid + Allo as a maybe: **9 / 18** distinct mono families, **10 / 18** if Allo’s mono-styled labels count.
+Nine solid matches, plus Allo as a maybe if its mono-styled labels count.
 
-Emil loads Berkeley Mono and Rauno declares JetBrains Mono, but neither appeared on the pages measured — not counted.
+Emil loads Berkeley Mono and Rauno declares JetBrains Mono, but neither appeared on the pages reviewed.
 
-### 6. `text-wrap: pretty` and/or `balance` — **16 / 18**
+### 6. `text-wrap: pretty` and/or `balance` — **strong default**
 
-pretty and/or balance observed on: joshpuckett.me, allo.joshpuckett.me, emilkowal.ski (article), mutype.vercel.app, muwrites.dev (headings `balance`), polar.sh, muratalpay.me (`balance` on `h1`), linear.app, devouringdetails.com, interfere.com, jakubantalik.com, libraries.dev, transitions.dev, modal.com, jakub.kr, benji.org (`balance`). **rauno.me** was `wrap` only. **interfaces.dev** wrap was not in the capture (unknown, not counted).
+pretty and/or balance observed on: joshpuckett.me, allo.joshpuckett.me, emilkowal.ski (article), mutype.vercel.app, muwrites.dev (headings `balance`), polar.sh, muratalpay.me (`balance` on `h1`), linear.app, devouringdetails.com, interfere.com, jakubantalik.com, libraries.dev, transitions.dev, modal.com, jakub.kr, benji.org (`balance`). **rauno.me** was `wrap` only. **interfaces.dev** wrap was not in the capture (unknown).
 
-### 7. Tight display line-height (about 1.0–1.25) vs looser prose (about 1.5–1.75) — **11 / 18**
+### 7. Tight display line-height (about 1.0–1.25) vs looser prose (about 1.5–1.75) — **common**
 
 Clear split: muwrites.dev (48/48 vs 17/27.2), linear.app (64/64 vs 15/24), interfere.com (56/56 vs 15/24), interfaces.dev (display 1.0–1.25 vs prose 1.625), modal.com (45/48 vs ~1.5 UI / 18/24 lead), libraries.dev (42/45 vs 16/24), transitions.dev (46/52 vs 16/24.2), devouringdetails.com (18/16 vs 18/30), allo.joshpuckett.me (hero 0.85 vs body 1.35), jakub.kr (60/60 display; prose 1.625), rauno.me essay (title 1.25 vs prose 1.75).
 
 Weaker or absent: joshpuckett.me (1.5 / 1.625), emilkowal.ski (headings stay 16/24), polar.sh (1.25 display, 1.375 mid), muratalpay.me / jakubantalik.com / benji.org (small type, modest lh contrast), mutype (no prose).
 
-### 8. Negative tracking on display; slight positive tracking on caps/meta labels — **11 / 18** negative display, **7 / 18** positive meta
+### 8. Negative tracking on display; slight positive tracking on caps/meta labels — **common** on display, **used often** on meta
 
 Negative display tracking: muwrites, linear, interfere, interfaces (capture), libraries, transitions, modal, jakub.kr (on 16px and 60px lines), allo (hero -0.64px), muratalpay (`h1` -0.09px, small), benji (small negative on titles).
 
 Positive meta/caps tracking: interfaces (+0.3px labels, +0.35px mondwest), allo caps +0.66px, interfere caps +0.5px, muwrites `⌘` +0.48px, devouringdetails badge +0.2px, modal small UI +0.1–0.36px, polar **almost all type** at +0.24px (a different, site-wide choice).
 
-### 9. Intermediate / variable font weights (not just 400 and 700) — **10 / 18**
+### 9. Intermediate / variable font weights (not just 400 and 700) — **common**
 
 450/550/590/510/420/430/460 appear on: joshpuckett.me (420), allo.joshpuckett.me (many), emilkowal.ski (550), muwrites.dev (550, 590), polar.sh (450, 550), linear.app (510, 590), interfere.com (450), jakub.kr (450, 550), interfaces.dev (450, 550; note says no 600/700), benji.org (430, 450, 460).
 
 400/500-only (or 400 only): muratalpay.me, mutype.vercel.app, jakubantalik.com, libraries.dev, rauno.me (400/500). modal.com and transitions.dev use 400/500(/600) without quarter-steps. devouringdetails.com uses 400–700 but not quarter-steps.
 
-### 10. OpenType stylistic sets on the main sans, especially Inter `ss03` / `cv01` — **8 / 18**
+### 10. OpenType stylistic sets on the main sans, especially Inter `ss03` / `cv01` — **default**
 
 - `"cv01", "ss03"`: emilkowal.ski, linear.app (2)
 - `"ss03"` only: interfere.com, jakub.kr (and benji.org on the script line) (2 + 1)
 - Other sets: muwrites.dev (`ss11`, ligatures off), polar.sh (`ss07`, `ss08`, liga off), modal.com (`cv11` on Diatype, `ss02` on DM Mono), allo specimen (ss01–ss03 etc.)
 
-interfaces.dev feature settings were not in the capture (the manual discusses features, but no computed string was recorded) — not counted.
+interfaces.dev feature settings were not in the capture (the manual discusses features, but no computed string was recorded).
 
-### 11. Tabular numbers for meters, clocks, IDs, and changing figures — **11 / 18**
+### 11. Tabular numbers for meters, clocks, IDs, and changing figures — **common**
 
 Observed `tabular-nums` and/or `tnum`: polar.sh, linear.app (`lining-nums tabular-nums`), interfere.com, jakub.kr, jakubantalik.com, muratalpay.me, allo.joshpuckett.me, devouringdetails.com, transitions.dev, benji.org, interfaces.dev (article discusses `tnum`; counted from the capture note).
 
-### 12. A grey (or alpha-grey) hierarchy of 3+ steps, not only black on white — **16 / 18**
+### 12. A grey (or alpha-grey) hierarchy of 3+ steps, not only black on white — **strong default**
 
-Nearly every site. Personal/light sites tend to warm near-black on off-white (Emil `253,253,252` / `33,32,28`; Rauno essay `252,252,252` / `23,23,23`; Josh `250,250,250` / `10,10,10`). Product dark sites (Linear, Modal, libraries, muwrites) use a near-white primary plus two or three cooler greys. interfere.com and benji.org lean on **alpha** (`rgba(0,0,0,0.875/0.608/…)` or `rgba(0,0,0,0.85/0.4)`). mutype is a two-color poster (cream on brown) — not really a hierarchy. Polar’s exact background was not measured, but white vs `rgb(133,133,133)` is a two-step hierarchy.
+Nearly every site. Personal/light sites tend to warm near-black on off-white (Emil `253,253,252` / `33,32,28`; Rauno essay `252,252,252` / `23,23,23`; Josh `250,250,250` / `10,10,10`). Product dark sites (Linear, Modal, libraries, muwrites) use a near-white primary plus two or three cooler greys. interfere.com and benji.org lean on **alpha** (`rgba(0,0,0,0.875/0.608/…)` or `rgba(0,0,0,0.85/0.4)`). mutype is a two-color poster (cream on brown) — not really a hierarchy. Polar’s exact background was not recorded, but white vs `rgb(133,133,133)` is a two-step hierarchy.
 
-### 13. Reading measure roughly 55–66ch / 540–670px on essay-like pages — **8 / 18** clearly, plus a few marketing widths
+### 13. Reading measure roughly 55–66ch / 540–670px on essay-like pages — **default**, plus a few marketing widths
 
 Essay-like: rauno.me 672px / 66.1ch, emilkowal.ski 644px, muwrites.dev 624px / 61.8ch, jakub.kr 644px, joshpuckett.me 548px / 55.6ch, muratalpay.me 560px / 59.3ch, jakubantalik.com 600px, benji.org 550px. Marketing/docs differ (Interfere 448px, Linear ~540–566px, Modal 403px, devouringdetails ~783px, Allo prose 680px). Not measurable or not applicable: mutype, polar, interfaces (unknown).
 
-### 14. Essay titles the same size as body, distinguished by weight (and sometimes color) — **4 / 18**, plus a related 5th
+### 14. Essay titles the same size as body, distinguished by weight (and sometimes color) — **occasional**, plus a related case
 
 emilkowal.ski (`h1`/`h2` 16px, weights 600/550), interfaces.dev (`h2` 16/26 w550, same as body; `h1` steps up to 24), jakub.kr (`h1` 17/27.625 w550, same as body), rauno.me essay (`h1` 16px grey w500 vs body 16/28). devouringdetails `h1` is also 18px, same as body, but with tighter lh.
 
 This is a strong “taste” signal for writing, even if rare on marketing homes.
 
-### 15. Self-hosted fonts as the default; Google Fonts is the exception — **15 / 18** primarily self-hosted
+### 15. Self-hosted fonts as the default; Google Fonts is the exception — **strong default**
 
 Google Fonts is used on libraries.dev (Inter + Roboto Mono; Saans is self-hosted) and jakubantalik.com (Caveat only; Inter is self-hosted). Everyone else that loaded fonts did so from their own origin or a first-party CDN (`static.linear.app`, `assets.interfere.com`). interfaces.dev loading is unknown. next/font with fallback `size-adjust` is common (Emil, Benji, muwrites, muratalpay, jakub.kr, Josh’s Cormorant).
 
-### 16. Underlines are custom (offset and/or muted decoration color), when they appear — **5 / 18** observed
+### 16. Underlines are custom (offset and/or muted decoration color), when they appear — **occasional**
 
 rauno.me essay: offset 2px, thickness 1px, color `rgb(23,23,23)`. emilkowal.ski: underline color `rgb(188,187,181)`. jakubantalik.com: decoration color at 30% opacity. libraries.dev and transitions.dev: `text-underline-offset: 2px` (libraries also uses a 50% decoration color). Many sites have no underline in the snapshot (they color or weight links instead). **Hanging punctuation was never observed.**
 
-### 17. Ligatures often turned off on UI / display faces — **3 / 18** explicitly
+### 17. Ligatures often turned off on UI / display faces — **occasional**
 
 muwrites.dev `"calt" 0, "liga" 0`; polar.sh `"liga" 0`; allo specimen can toggle `calt` off. Not a majority, but it is explicit on muwrites.dev and polar.sh.
 
 ---
 
-## Notes for type-taste (not rules yet — just what the evidence clusters around)
+## Notes for type-taste (not rules yet)
 
-If these sites are the taste corpus, the densest shared recipe for **writing / personal sites** looks like:
+The densest recipe for **writing / personal sites** in this taste looks like:
 
 - Inter (or Allo / Geist) for UI and often for body; a serif italic only for emphasis; a mono for code and small labels.
 - Prose around 15–17px with line-height **1.6–1.75** (1.625 shows up exactly on interfaces.dev, jakub.kr, and joshpuckett.me).
@@ -651,6 +651,6 @@ If these sites are the taste corpus, the densest shared recipe for **writing / p
 - Inter features `cv01` and/or `ss03` when Inter is the face; `tabular-nums` wherever numbers change.
 - A short grey ladder (or alpha ladder) on an off-white or near-black ground; custom underlines if underlines are used at all.
 
-Murat’s own measured sites already sit in this cluster: **muwrites.dev** (Geist display + Inter text, 17/27.2, 624px, tight 48/48 titles, 550/590, `ss11`, dark greys), **muratalpay.me** (Inter 15/22, 560px, tabular clock, script accent, 18px balanced title), **mutype.vercel.app** (Geist poster, too sparse to generalize).
+These values already show up in Murat's own work: **muwrites.dev** (Geist display + Inter text, 17/27.2, 624px, tight 48/48 titles, 550/590, `ss11`, dark greys), **muratalpay.me** (Inter 15/22, 560px, tabular clock, script accent, 18px balanced title), **mutype.vercel.app** (Geist poster, too sparse to generalize).
 
 Raw JSON dumps are not included in this repo.

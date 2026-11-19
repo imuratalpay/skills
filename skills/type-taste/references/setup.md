@@ -32,7 +32,7 @@ Put Tailwind's `antialiased` on `<body>` once.
 
 ## Next.js fonts
 
-Self-host everything through `next/font`. Never add a `<link>` to Google Fonts (15 of 18 sites self-host).
+Self-host everything through `next/font`. Never add a `<link>` to Google Fonts (self-hosting is the default).
 
 ```ts
 import localFont from "next/font/local";
