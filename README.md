@@ -3,7 +3,7 @@
 Agent skills for building interfaces with taste, by [Murat Alpay](https://muratalpay.me).
 
 ```sh
-npx skills add psychedelichip/skills
+npx skills add imuratalpay/skills
 ```
 
 ## /type-taste
