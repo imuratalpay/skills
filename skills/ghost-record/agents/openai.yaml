@@ -1,0 +1,7 @@
+# Codex reads this file instead of `disable-model-invocation` in SKILL.md.
+# The skill only runs when invoked explicitly with $ghost-record.
+interface:
+  display_name: "ghost-record"
+  short_description: "Record a ghost-cursor demo from one sentence"
+policy:
+  allow_implicit_invocation: false
