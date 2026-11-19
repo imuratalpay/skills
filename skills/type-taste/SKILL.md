@@ -1,6 +1,6 @@
 ---
 name: type-taste
-description: Murat's personal typography taste, measured from 18 sites he likes. Use for any type or UI-text decision in a web project (fonts, sizes, line-height, weights, tracking, greys, measure, headings, labels, numbers, links, font loading) and when reviewing a page's type. Layers on top of emil-typography. Emil supplies technique and accessibility floors, this skill supplies the values.
+description: Typography values measured on 18 sites Murat likes. Use when choosing or changing fonts, font sizes, line-height, font weight, letter-spacing, text colors or greys, line length, headings, labels, numbers, links or font loading in a web project, and when reviewing or auditing a page's typography. A general typography skill can supply technique and accessibility floors; this skill supplies the values.
 ---
 
 # type-taste
@@ -9,14 +9,14 @@ Quiet Inter at reading size. A real serif italic for emphasis, a mono for code a
 
 Every value here was measured on a site Murat likes. Murat approved the rules on 18 Nov 2026. Evidence: `references/measurements.md`. If a value isn't in that file, this skill doesn't have one (see "Not measured"). Drop-in CSS: `tokens.css`. Tailwind, `next/font` and licensing: `references/setup.md`. Runnable review: `references/audit.js`. Worked example: `before-after/` (`python3 render.py` re-renders and audits it).
 
-Apply emil-typography first. Where they disagree, this skill picks the value. Emil picks the technique and the floors.
+If a general typography skill is installed, apply it first for technique and accessibility floors. Where the two disagree on a value, this skill wins.
 
 ## Decide in this order
 
 1. **What is the page for?**
-   - Reading (note, essay, docs page): every heading at body size, 550, fg-1. Emil, jakub.kr, rauno.
-   - A long article with sections: the `h1` steps to 24/32, and the `h2`s stay at body size. interfaces.dev.
-   - Looking (landing, tool home, one statement): one display line at 48/48, 590, −0.022em. muwrites, linear.
+   - Reading (note, essay, docs page): every heading at body size, 550, fg-1.
+   - A long article with sections: the `h1` steps to 24/32, and the `h2`s stay at body size.
+   - Looking (landing, tool home, one statement): one display line at 48/48, 590, −0.022em.
    - Unsure: it's a reading page.
 2. **What role is this text?** Take its row from the table below. If no row fits, it's prose.
 3. **Does it need to stand out more?** Take one grey step. Still not enough: one weight step. Change size only as the last resort, and only to a size in the table.
@@ -25,26 +25,26 @@ Apply emil-typography first. Where they disagree, this skill picks the value. Em
 
 ## Roles
 
-| Role | Type | Color | Measured on |
-|---|---|---|---|
-| Prose | Inter 16/26, 400 | fg-2 | interfaces, joshpuckett |
-| Long essay | Inter 17/27.625, 400 | fg-2 | jakub.kr |
-| UI, subcopy | Inter 15/24, 450 | fg-2 | linear, interfere |
-| Secondary | Inter 14/22.75, 400 | fg-3 | interfaces |
-| Meta, caption | Inter 13/21.125, 400 | fg-3 | jakub.kr |
-| Label, table head | Geist Mono 12/16, 500, uppercase, +0.3px | fg-3 | interfaces (mono label, exact) |
-| Code | Geist Mono 13/21.125; inline 0.8125em | fg-1 | jakub.kr, interfaces |
-| Heading, same-size | body size, 550 | fg-1 | Emil, jakub.kr, interfaces h2 |
-| Heading, step | 24/32, 550, −0.3px | fg-1 | interfaces h1 |
-| Heading, display | 48/48, 590, −0.022em | fg-1 | muwrites −1.06px, linear −1.408px @64 |
-| Emphasis | Newsreader italic, 430, 1.07em | inherit | benji (Newsreader 15px in 14px body) |
-| Script | Caveat 700 at 1.333em, one word per page | fg-1 | devouringdetails (Caveat 24 in 18) |
+| Role | Type | Color |
+|---|---|---|
+| Prose | Inter 16/26, 400 | fg-2 |
+| Long essay | Inter 17/27.625, 400 | fg-2 |
+| UI, subcopy | Inter 15/24, 450 | fg-2 |
+| Secondary | Inter 14/22.75, 400 | fg-3 |
+| Meta, caption | Inter 13/21.125, 400 | fg-3 |
+| Label, table head | Geist Mono 12/16, 500, uppercase, +0.3px | fg-3 |
+| Code | Geist Mono 13/21.125; inline 0.8125em | fg-1 |
+| Heading, same-size | body size, 550 | fg-1 |
+| Heading, step | 24/32, 550, −0.3px | fg-1 |
+| Heading, display | 48/48, 590, −0.022em | fg-1 |
+| Emphasis | Newsreader italic, 430, 1.07em | inherit |
+| Script | Caveat 700 at 1.333em, one word per page | fg-1 |
 
-- **Weights:** 400 body, 420 soft body (joshpuckett), 450 UI, 510 medium (linear), 550 heading and `strong`, 590 display. Never 600 or 700 on the sans or mono.
-- **Measure:** 644px (Emil, jakub.kr). The measured range is 548–672px. Never wider.
+- **Weights:** 400 body, 420 soft body, 450 UI, 510 medium, 550 heading and `strong`, 590 display. Never 600 or 700 on the sans or mono.
+- **Measure:** 644px. The measured range is 548–672px. Never wider.
 - **Tracking** only on display (negative) and caps labels (positive). Everything under 24px that isn't caps stays `normal`.
 - **Line-heights** are measured px pairs. Always set a size together with its line-height.
-- **Fonts:** Inter with `"cv01", "ss03"` (Emil, linear). Newsreader, Geist Mono and Caveat are free stand-ins. Paid upgrades, only if Murat buys them: Tiempos Text or Heldane Text for the italic, Berkeley Mono for the mono. Self-host every font, never from Google's CDN.
+- **Fonts:** Inter with `"cv01", "ss03"`. Newsreader, Geist Mono and Caveat are free stand-ins. Paid upgrades, only if Murat buys them: Tiempos Text or Heldane Text for the italic, Berkeley Mono for the mono. Self-host every font, never from Google's CDN.
 
 ## Greys
 
@@ -57,7 +57,7 @@ Apply emil-typography first. Where they disagree, this skill picks the value. Em
 | fg-4 | `#a0a0a0` | `#7c7c7c` | 2.6 / 4.49 | disabled and placeholder only. It fails AA, so never use it for text someone has to read |
 | fg-5 | `#c7c7c7` | `#3a3a3a` | 1.7 | hairlines, underline color |
 
-Light: jakub.kr Lab 12.3 / 28.08, rauno 111 / 160 / 252, devouringdetails 199. Dark: interfaces Lab L 94 / 87 / 74 / 52, libraries.dev bg 18. Dark fg-5 was not measured.
+Every value comes from `references/measurements.md`. Dark fg-5 was not measured.
 
 ## Do / don't
 
@@ -69,7 +69,7 @@ h2 { font-size: inherit; font-weight: 550; color: var(--mt-fg-1); }
 
 /* Don't: the browser slants Inter and calls it italic */
 em { font-style: italic; }
-/* Do: a real italic, sized the way benji sets Newsreader */
+/* Do: a real italic, sized up slightly to match the body */
 em { font-family: var(--mt-serif-italic); font-weight: 430; font-size: 1.07em; line-height: 0; }
 
 /* Don't: a date the reader needs, at 2.6:1 */
@@ -110,12 +110,12 @@ Run `references/audit.js` on the page in light and in dark (DevTools console, or
 3. No sans or mono element computes a weight of 600 or more.
 4. Prose is 15–17px, line-height ÷ size is 1.6–1.625, and width ≤ 672px.
 5. `h2`–`h6` are at body size. An `h1` is same-size, step (24/32, −0.3px) or display (48/48, −0.022em). One display heading per page at most.
-6. Uppercase text is mono, 12px, tracked +0.3 to +0.66px (interfaces to allo). Other text under 24px has `normal` tracking.
+6. Uppercase text is mono, 12px, tracked +0.3 to +0.66px. Other text under 24px has `normal` tracking.
 7. Every text color is fg-1, fg-2 or fg-3 of the active scheme. Nothing is `rgb(0, 0, 0)`.
 8. `p` computes `pretty`, `h1`–`h3` compute `balance`, and digits in `td`, `time` or `.num` compute `tabular-nums`.
 9. `em` is Newsreader italic 430 at 1.07em, and `font-synthesis` is `none`.
 10. There are no requests to `fonts.googleapis.com` or `fonts.gstatic.com`.
-11. Underlined links are 1px thick, 2px offset, fg-5 (rauno; muted like Emil's).
+11. Underlined links are 1px thick, 2px offset, fg-5.
 12. Dark mode swaps to the dark ladder on `#121212`. It is not `filter: invert()`.
 13. No paid font file (Tiempos, Heldane, Berkeley Mono) is in a public repo.
 
@@ -128,4 +128,4 @@ When a project pushes back, bend the weak rules first. Counts are out of 18 site
 
 ## Not measured
 
-Spacing, paragraph gaps, hover and focus states, `::selection`, and the dark fg-5 were not measured. This skill has no numbers for them. Set them by eye and don't turn a guess into a token. The one hover rule in `tokens.css` (underline fades to the text color) takes its 150ms ease-out from emil-ui-polish. The demo spaces everything in `lh` units, so it doesn't invent any pixels.
+Spacing, paragraph gaps, hover and focus states, `::selection`, and the dark fg-5 were not measured. This skill has no numbers for them. Set them by eye and don't turn a guess into a token. The one hover rule in `tokens.css` (underline fades to the text color) uses a 150ms ease-out. The demo spaces everything in `lh` units, so it doesn't invent any pixels.
