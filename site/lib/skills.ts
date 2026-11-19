@@ -106,10 +106,10 @@ export const SKILLS: Skill[] = [
     slug: "type-taste",
     title: "Type taste",
     summary:
-      "Your agent takes every size, weight, grey and line-height from measurements of 18 sites I like.",
-    short: "Measured type values: Inter, a serif italic for emphasis, and grey before weight before size.",
+      "Your agent sets type the way I do: every size, weight, grey and line-height, from years of shipping interfaces.",
+    short: "My type values: Inter, a serif italic for emphasis, and grey before weight before size.",
     pitch:
-      "Typography values **measured on 18 sites** I like. Inter at reading size, **Newsreader italic** for emphasis, and hierarchy from **grey first, weight second, size last**.",
+      "**My own type values**, refined over years of shipping interfaces. Inter at reading size, **Newsreader italic** for emphasis, and hierarchy from **grey first, weight second, size last**.",
     install: {
       commands: ["npx skills add imuratalpay/skills"],
       note: "The bundled fonts (Inter, Newsreader, Geist Mono, Caveat) are free under the SIL Open Font License.",

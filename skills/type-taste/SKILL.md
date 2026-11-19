@@ -1,6 +1,6 @@
 ---
 name: type-taste
-description: Typography values measured on 18 sites Murat likes. Use when choosing or changing fonts, font sizes, line-height, font weight, letter-spacing, text colors or greys, line length, headings, labels, numbers, links or font loading in a web project, and when reviewing or auditing a page's typography. A general typography skill can supply technique and accessibility floors; this skill supplies the values.
+description: Murat's own typography taste, refined over years of shipping interfaces. Use when choosing or changing fonts, font sizes, line-height, font weight, letter-spacing, text colors or greys, line length, headings, labels, numbers, links or font loading in a web project, and when reviewing or auditing a page's typography. A general typography skill can supply technique and accessibility floors; this skill supplies the values.
 ---
 
 # type-taste

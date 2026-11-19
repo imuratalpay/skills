@@ -336,7 +336,7 @@ export function TypeTasteTile() {
         </AnimatePresence>
         <span className={RING} />
       </button>
-      <TileCaption>Tap or click for the next role. Every value is measured.</TileCaption>
+      <TileCaption>Tap or click for the next role. Every value is one I use.</TileCaption>
     </div>
   );
 }
