@@ -16,15 +16,15 @@ const LATEST = SKILLS.map((s) => s.updated).sort().at(-1)!;
 const FAQ = [
   {
     q: "How do I install a skill?",
-    a: "Each skill installs differently, and its page has the exact command. type-taste installs with `npx skills add imuratalpay/skills`. ui-diff lives in its own repository and installs with `./install.sh`. ghost-record ships inside ghost-cursor, and the ghost-cursor docs for agents have the steps.",
+    a: "Run `npx skills add imuratalpay/skills`. It installs every skill here, and running it again picks up new ones. Add `-g` to install them for all your projects.",
   },
   {
     q: "Which agents do they work with?",
-    a: "Coding agents that load skills, like Claude Code and Cursor. ui-diff’s installer also takes `--codex` for Codex.",
+    a: "Coding agents that load skills, like Claude Code, Cursor and Codex. The skills CLI installs into most others too.",
   },
   {
     q: "How do I use one?",
-    a: "Type its name, like `/type-taste`, or just describe the job. Each skill page has example prompts you can copy.",
+    a: "Type its name, like `/type-taste`, or just describe the job. ui-diff and type-taste also start on their own when the task fits. ghost-record only runs when you type `/ghost-record`. Each skill page has example prompts you can copy.",
   },
 ];
 

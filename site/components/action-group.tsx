@@ -7,7 +7,7 @@ type Action = { href: string; label: string; icon?: ReactNode; external?: boolea
 const BUTTON =
   "flex h-11 items-center justify-center gap-2 rounded-xl bg-surface text-secondary font-ui text-fg-1 shadow-raised transition-[scale] duration-(--duration-quick) ease-out hover:shadow-raised-hover active:scale-(--scale-press-large)";
 
-/** A tray holding an optional command and a row of buttons, as on jakub.kr/skills. */
+/** A tray holding an optional command and a row of buttons. */
 export function ActionGroup({ commands, actions }: { commands?: string[]; actions: Action[] }) {
   return (
     <div className="flex flex-col gap-1 rounded-2xl bg-stage p-1 shadow-well">

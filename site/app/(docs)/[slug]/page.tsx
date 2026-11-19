@@ -3,12 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommandBox } from "@/components/copy";
 import { PromptCard } from "@/components/copy-button";
+import { CopyForAgent } from "@/components/copy-for-agent";
 import { ExternalIcon } from "@/components/icons";
 import { DashList, H2, Inline, P, PAGE, PrevNext } from "@/components/prose";
 import { SiteFooter } from "@/components/site-footer";
 import { SkillGlyph } from "@/components/skill-glyph";
 import { SkillPlayground, SkillTile } from "@/components/skill-media";
 import { pageMetadata } from "@/lib/metadata";
+import { skillMarkdown } from "@/lib/skill-markdown";
 import { NAV } from "@/lib/nav";
 import { SITE, SKILLS, formatDate, getSkill } from "@/lib/skills";
 
@@ -72,6 +74,9 @@ export default async function SkillPage({ params }: PageProps<"/[slug]">) {
               Source
               <ExternalIcon />
             </a>
+          </div>
+          <div className="mt-4">
+            <CopyForAgent markdown={skillMarkdown(skill)} />
           </div>
         </div>
         <div className="mt-10 xl:mt-2">

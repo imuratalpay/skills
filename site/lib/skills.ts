@@ -20,6 +20,8 @@ export type Skill = {
     link?: { label: string; href: string };
   };
   invoke: string;
+  /** "auto": the agent may load it when a task matches its description. "user": it only runs when typed. */
+  invocation: "auto" | "user";
   /** ISO date of the last change to the skill's source. */
   updated: string;
   source: { label: string; href: string };
@@ -46,10 +48,11 @@ export const SKILLS: Skill[] = [
     pitch:
       "Screenshots every route a pull request touches at **base and head**, diffs them and posts **one sticky PR comment** with the images and a short UX summary. Only people who can read the repo can see the images.",
     install: {
-      commands: ["git clone https://github.com/imuratalpay/ui-diff.git", "cd ui-diff && ./install.sh --claude"],
-      note: "`--claude` installs into `~/.claude/skills`, which Cursor reads too. Use `--codex` for Codex. You need git and Node.js 20.10+; the GitHub CLI only to post.",
+      commands: ["npx skills add imuratalpay/skills"],
+      note: "Installs every skill here, for Claude Code, Cursor, Codex and more. ui-diff needs git and Node.js 20.10+, and the GitHub CLI only to post. For the standalone CLI, clone `imuratalpay/ui-diff` and run `./install.sh`.",
     },
     invoke: "/ui-diff",
+    invocation: "auto",
     updated: "2026-11-19",
     source: { label: "imuratalpay/ui-diff", href: "https://github.com/imuratalpay/ui-diff" },
     whatItDoes: [
@@ -112,6 +115,7 @@ export const SKILLS: Skill[] = [
       note: "The bundled fonts (Inter, Newsreader, Geist Mono, Caveat) are free under the SIL Open Font License.",
     },
     invoke: "/type-taste",
+    invocation: "auto",
     updated: "2026-11-18",
     source: { label: "imuratalpay/skills", href: "https://github.com/imuratalpay/skills/tree/main/skills/type-taste" },
     whatItDoes: [
@@ -123,7 +127,7 @@ export const SKILLS: Skill[] = [
     ],
     whenToUse: [
       "Any type decision in a web project: fonts, sizes, line-heights, weights, tracking, greys, headings, labels, numbers, links and font loading. Also when a page feels loud or flat and you can’t say why.",
-      "It layers on top of `emil-typography`. Emil supplies the technique and the accessibility floors; type-taste picks the values.",
+      "Pair it with any general typography skill: that one supplies the technique and the accessibility floors, type-taste picks the values.",
     ],
     playground: {
       title: "The same HTML rendered twice, from the worked example in `skills/type-taste/before-after`.",
@@ -164,10 +168,12 @@ export const SKILLS: Skill[] = [
     pitch:
       "Turns **one sentence** into a recorded ghost-cursor demo of a React component. It records with human-like input, **replays the take to check it** and prints the snippet to paste.",
     install: {
-      commands: ["npm i @imuratalpay/ghost-cursor"],
-      link: { label: "Steps to add the skill folder", href: "https://ghost-cursor-seven.vercel.app/docs/agents" },
+      commands: ["npx skills add imuratalpay/skills"],
+      note: "Your project also needs `@imuratalpay/ghost-cursor` and `motion`; the skill installs whatever is missing. It only runs when you type `/ghost-record`.",
+      link: { label: "ghost-cursor docs for agents", href: "https://ghost-cursor-seven.vercel.app/docs/agents" },
     },
     invoke: "/ghost-record",
+    invocation: "user",
     updated: "2026-11-19",
     source: { label: "ghost-cursor docs", href: "https://ghost-cursor-seven.vercel.app/docs/agent-skill" },
     whatItDoes: [

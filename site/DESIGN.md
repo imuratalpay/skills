@@ -110,8 +110,8 @@ Curves: `ease-out` for entering, leaving, hover color and sliding indicators. `e
 
 ## Adding a skill
 
-1. Add an entry to `SKILLS` in `lib/skills.ts`. Every field is required except `install.note` and `install.link`. Text follows `/emil-unslop-writing`: short, concrete, no em dashes.
-2. Add its slug to a group in `lib/nav.ts`. The sidebar, the overview, search, the sitemap, `llms.txt` and the OG image all read from these two files.
+1. Add an entry to `SKILLS` in `lib/skills.ts`. Every field is required except `install.note` and `install.link`. Set `invocation` to `"auto"` or `"user"` to match the skill's frontmatter. Text is short and concrete, with no em dashes.
+2. Add its slug to a group in `lib/nav.ts`. The sidebar, the overview, search, the sitemap, `llms.txt`, `skills.json`, the `/<slug>.md` pages and the OG image all read from these two files. The skill itself lives at `skills/<slug>/SKILL.md` in the repo root.
 3. Add a tile and a scene to `MEDIA` in `components/skill-media.tsx`, using the playground's phase timing.
 4. Run `npm run build` and `npm run lint`. Both must pass with no warnings.
 
