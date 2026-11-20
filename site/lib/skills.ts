@@ -170,12 +170,12 @@ export const SKILLS: Skill[] = [
     install: {
       commands: ["npx skills add imuratalpay/skills"],
       note: "Your project also needs `@imuratalpay/ghost-cursor` and `motion`; the skill installs whatever is missing. It only runs when you type `/ghost-record`.",
-      link: { label: "ghost-cursor docs for agents", href: "https://ghost-cursor-seven.vercel.app/docs/agents" },
+      link: { label: "ghost-cursor docs for agents", href: "https://ghost-cursor.muratalpay.me/docs/agents" },
     },
     invoke: "/ghost-record",
     invocation: "user",
     updated: "2026-11-19",
-    source: { label: "ghost-cursor docs", href: "https://ghost-cursor-seven.vercel.app/docs/agent-skill" },
+    source: { label: "ghost-cursor docs", href: "https://ghost-cursor.muratalpay.me/docs/agent-skill" },
     whatItDoes: [
       "Finds the component from your sentence: an export with that name, then a file, then JSX text or an `aria-label` that matches.",
       "Turns each verb into a step aimed at something stable: `data-ghost-id` first, then role and name, then text. Never a class name.",
