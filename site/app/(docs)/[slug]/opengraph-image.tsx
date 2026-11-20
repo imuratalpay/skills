@@ -19,9 +19,9 @@ export async function generateImageMetadata({ params }: { params: Promise<{ slug
 export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
   const skill = getSkill((await params).slug);
   if (!skill) notFound();
-  // type-taste uses the Plotter cover instead of the generated card.
-  if (skill.slug === "type-taste") {
-    const file = await readFile(path.join(process.cwd(), "public/type-taste/og-1200x630.png"));
+  // type-taste and ghost-record use the Plotter cover instead of the generated card.
+  if (skill.slug === "type-taste" || skill.slug === "ghost-record") {
+    const file = await readFile(path.join(process.cwd(), `public/${skill.slug}/og-1200x630.png`));
     return new Response(file, {
       headers: {
         "Content-Type": "image/png",
