@@ -473,6 +473,20 @@
                     "additionalProperties": false
                   }
                 ]
+              },
+              "focus": {
+                "description": "Added to the top-level focus for this route",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ignore": {
+                "description": "Added to the top-level ignore for this route",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               }
             },
             "required": [
@@ -486,6 +500,22 @@
     "globalFiles": {
       "default": [],
       "description": "Globs whose changes affect every route",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "focus": {
+      "default": [],
+      "description": "CSS selectors of the only areas to compare (pixels and styles); the rest of the page is not diffed",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ignore": {
+      "default": [],
+      "description": "CSS selectors of areas not to compare: painted over in the screenshots and left out of the style diff",
       "type": "array",
       "items": {
         "type": "string"
@@ -518,6 +548,71 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
+        },
+        "uiPackages": {
+          "default": [
+            "react",
+            "react-dom",
+            "next",
+            "vue",
+            "nuxt",
+            "svelte",
+            "@sveltejs/*",
+            "astro",
+            "@astrojs/*",
+            "solid-js",
+            "preact",
+            "@angular/*",
+            "@remix-run/*",
+            "react-router",
+            "react-router-dom",
+            "@tanstack/react-router",
+            "tailwindcss",
+            "@tailwindcss/*",
+            "postcss",
+            "postcss-*",
+            "autoprefixer",
+            "lightningcss",
+            "sass",
+            "less",
+            "styled-components",
+            "@emotion/*",
+            "@stylexjs/*",
+            "@vanilla-extract/*",
+            "@pandacss/*",
+            "class-variance-authority",
+            "tailwind-merge",
+            "@radix-ui/*",
+            "@headlessui/*",
+            "@mui/*",
+            "@chakra-ui/*",
+            "@mantine/*",
+            "antd",
+            "@ant-design/*",
+            "bootstrap",
+            "daisyui",
+            "lucide-react",
+            "@heroicons/*",
+            "@fortawesome/*",
+            "framer-motion",
+            "motion",
+            "@fontsource/*",
+            "@fontsource-variable/*"
+          ],
+          "description": "Package names (* wildcards) whose version changes may change the UI; replaces the default list, so keep the entries you still want",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependencyRoutes": {
+          "description": "Routes captured when a UI package changes; default: every known route",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "starts_with",
+            "pattern": "^\\/.*"
+          }
         },
         "include": {
           "default": [
@@ -663,6 +758,17 @@
         "additionalProperties": false
       }
     },
+    "browser": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "channel": {
+          "description": "Installed browser to capture with instead of Playwright's Chromium, e.g. \"chrome\" (UI_DIFF_BROWSER_CHANNEL overrides it)",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "capture": {
       "default": {},
       "type": "object",
@@ -679,15 +785,17 @@
         },
         "disableAnimations": {
           "default": true,
+          "description": "Older switch: false turns off freeze.animations",
           "type": "boolean"
         },
         "waitForFonts": {
           "default": true,
+          "description": "Older switch: false turns off freeze.fonts",
           "type": "boolean"
         },
         "fixedTime": {
           "default": false,
-          "description": "Freeze Date: an ISO timestamp, \"run-start\" (same instant on both sides) or false",
+          "description": "Older form of freeze.time: an ISO timestamp or \"run-start\" sets it; false leaves freeze.time in charge",
           "anyOf": [
             {
               "type": "string"
@@ -700,7 +808,7 @@
         },
         "stableRandom": {
           "default": true,
-          "description": "Seed Math.random so random content renders the same on both sides",
+          "description": "Older switch: false turns off freeze.random",
           "type": "boolean"
         },
         "mask": {
@@ -771,6 +879,101 @@
         "timezoneId": {
           "default": "UTC",
           "type": "string"
+        },
+        "styleMaxElements": {
+          "default": 2500,
+          "description": "Most visible elements whose computed styles are recorded per capture (token audit); a warning says when a page has more",
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    },
+    "freeze": {
+      "description": "Inputs frozen before every still capture, the same on both sides",
+      "default": {},
+      "type": "object",
+      "properties": {
+        "clock": {
+          "default": true,
+          "description": "Freeze Date at `time` with the Playwright clock on both sides (timers keep running), so clocks and \"2 min ago\" match",
+          "type": "boolean"
+        },
+        "time": {
+          "default": "run-start",
+          "description": "\"run-start\" (the same instant on both sides) or an ISO timestamp",
+          "type": "string"
+        },
+        "random": {
+          "default": true,
+          "description": "Seed Math.random and crypto.getRandomValues / randomUUID",
+          "type": "boolean"
+        },
+        "seed": {
+          "default": 795556381,
+          "description": "Seed for the random generators",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "animations": {
+          "default": true,
+          "description": "Finish CSS animations and transitions, hide the caret and set prefers-reduced-motion for still captures",
+          "type": "boolean"
+        },
+        "fonts": {
+          "default": true,
+          "description": "Wait until no web font is loading (document.fonts) before capturing",
+          "type": "boolean"
+        },
+        "fontTimeoutMs": {
+          "default": 8000,
+          "description": "Longest wait for fonts",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000
+        }
+      },
+      "additionalProperties": false
+    },
+    "styleDiff": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "Record the element map of every capture and describe changes as measured style changes",
+          "type": "boolean"
+        },
+        "maxChanges": {
+          "default": 50,
+          "description": "Most element changes kept per capture in report.json",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "minConfidence": {
+          "default": "medium",
+          "description": "Changes of elements matched with less confidence are listed as unverified",
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "fingerprint": {
+      "default": {},
+      "type": "object",
+      "properties": {
+        "dataLabel": {
+          "description": "What test data the app ran with (a fixture name, seed or dataset version), shown in the capture settings; \"not declared\" when unset",
+          "type": "string",
+          "maxLength": 200
         }
       },
       "additionalProperties": false
@@ -1102,6 +1305,11 @@
               }
             ]
           }
+        },
+        "parallel": {
+          "default": true,
+          "description": "Record base and head at the same time (each in its own page); false records them one after the other",
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -1212,7 +1420,7 @@
           }
         },
         "maxElements": {
-          "default": 2500,
+          "description": "Deprecated: use capture.styleMaxElements (still honoured when that is not set)",
           "type": "integer",
           "minimum": 10,
           "maximum": 9007199254740991

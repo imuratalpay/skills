@@ -4,17 +4,16 @@ import { Layers } from "./layers";
 import type { SceneProps } from "./playground";
 
 /*
- * ui-diff: the full-page composite from the repo's verified example. It is three panels side by side
- * (before, after, diff), each 775px wide at x = 19, 813 and 1607, with the page starting at y = 19.
+ * ui-diff: the full-page composite from the repo's verified example (docs/example/compare). It is three
+ * panels side by side (before, after, diff), each 775px wide at x = 19, 813 and 1607, with the page starting at y = 19.
  */
-export const COMPOSITE = { src: "/ui-diff/home__desktop__light.png", width: 2400, height: 1156 };
+export const COMPOSITE = { src: "/ui-diff/compare/home__desktop__light.png", width: 2400, height: 1074 };
 export const PANEL_X = { before: 19, after: 813, diff: 1607 } as const;
 
 const ALT = {
-  before: "Landing page at the base commit: the headline “Analytics for product teams” and a blue Start free trial button.",
-  after:
-    "Landing page at the head commit: the headline “Analytics your whole team will actually use” on two lines and a violet pill button.",
-  diff: "The diff: changed pixels in pink, each changed area boxed.",
+  before: "Landing page at the base commit: the Start free trial button with 8px 14px padding and 4px corners.",
+  after: "Landing page at the head commit: the same button with 10px 18px padding and 8px corners, and the Work email label in blue.",
+  diff: "The diff: the page faded, with the button row and the Work email label outlined in pink.",
 };
 
 /** One panel of the composite, cropped to a `width`-px-wide window starting at (`x`, `y`) in the panel. */

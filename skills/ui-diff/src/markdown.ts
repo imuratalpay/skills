@@ -1,5 +1,10 @@
 import { categorize } from './a11y.js';
-import { autoSummary, captureLabel, describeCapture, type CaptureResult, type Report } from './report.js';
+import { describeDependency, type DependencyChange } from './deps.js';
+import { onlyEffects } from './elements.js';
+import { captureLabel, describeCapture, notCheckedNotice, notCheckedReason, type CaptureResult, type Report, type SideTiming, type Timings } from './report.js';
+import { causeText, effectLines, isShownChange, measurements, pixelOnlyAreas, verdict, type EffectLine } from './verdict.js';
+
+export { changeText } from './verdict.js';
 
 export const MAX_COMMENT_LENGTH = 65000;
 
@@ -56,10 +61,12 @@ function captureHeading(c: CaptureResult, themes: number): string {
   return `**${code(c.route.path)}** · ${c.viewport}${themes > 1 || c.theme !== 'light' ? ` · ${c.theme}` : ''}`;
 }
 
-let imagesEnabled = true;
+function imagesOn(opts: RenderOptions): boolean {
+  return opts.images !== false;
+}
 
-function img(src: string, alt: string, width?: number): string {
-  if (!imagesEnabled) return `_${escapeHtml(alt)} — image not uploaded_`;
+function img(opts: RenderOptions, src: string, alt: string, width?: number): string {
+  if (!imagesOn(opts)) return `_${escapeHtml(alt)} — image not uploaded_`;
   return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${width ? ` width="${width}"` : ''}>`;
 }
 
@@ -82,7 +89,90 @@ function sideLabel(side: Report['base']): string {
   return side.includesUncommitted ? `${side.label} + uncommitted changes` : side.label;
 }
 
-function changedSection(report: Report, captures: CaptureResult[], opts: RenderOptions): string[] {
+function elementLabel(name: string, selector: string): string {
+  return name === selector || selector.length > 40 ? code(name) : `${code(name)} (${code(selector)})`;
+}
+
+const MEASURED_VISIBLE = 8;
+
+/**
+ * Measured changes grouped by route: element first, then property old → new, biggest first, the
+ * same change on several captures once with where it happened when that is not everywhere.
+ */
+function measuredSection(report: Report, opts: RenderOptions): string[] {
+  const routes = measurements(report).filter((r) => r.rows.length || r.unverified.size);
+  if (routes.length === 0) return [];
+  const compact = opts.compact ?? 0;
+  const out = ['#### Measured changes', ''];
+  for (const r of routes) {
+    out.push(`**${code(r.route)}**`, '');
+    const line = (row: (typeof r.rows)[number]): string[] => {
+      const lines = [`- ${elementLabel(row.name, row.selector)}: ${escapeText(row.text)} — ${row.where}`];
+      const effects = effectLines(row);
+      const text = (e: EffectLine) => `  - ${e.element ? `${elementLabel(e.element.name, e.element.selector)}: ` : ''}${escapeText(e.text)}`;
+      const own = effects.filter((e) => !e.element);
+      const others = effects.filter((e) => e.element);
+      lines.push(...own.map(text));
+      // Effects on other elements are always collapsed; the summary says how many.
+      const count = `${others.length} effect${others.length === 1 ? '' : 's'} on other elements`;
+      if (others.length && compact < 2) lines.push(`  <details><summary>${count}</summary>`, '', ...others.map(text), '', '  </details>', '');
+      else if (others.length) lines.push(`  - …and ${count} in \`report.json\``);
+      return lines;
+    };
+    const visible = compact >= 2 ? 3 : MEASURED_VISIBLE;
+    out.push(...r.rows.slice(0, visible).flatMap(line));
+    if (r.rows.length > visible && compact < 2) {
+      out.push('', `<details><summary>${r.rows.length - visible} more measured change${r.rows.length - visible === 1 ? '' : 's'}</summary>`, '', ...r.rows.slice(visible).flatMap(line), '', '</details>');
+    } else if (r.rows.length > visible) {
+      out.push(`- …and ${r.rows.length - visible} more in \`report.json\``);
+    }
+    if (r.rows.length === 0) out.push('- none verified');
+    const omitted = r.captures.reduce((n, c) => n + (c.styleDiff!.omitted ?? 0), 0);
+    if (omitted) out.push('', `<sub>${omitted} smaller change${omitted === 1 ? '' : 's'} left out (styleDiff.maxChanges).</sub>`);
+    if (r.unverified.size) {
+      const list = [...r.unverified].slice(0, 5).map(([text, why]) => `${text} (${why})`).join('; ');
+      out.push('', `<sub>Unverified (not matched confidently, or no changed pixels in their area): ${escapeText(list)}${r.unverified.size > 5 ? `; +${r.unverified.size - 5} more in report.json` : ''}</sub>`);
+    }
+    out.push('');
+  }
+  return out;
+}
+
+/** Changed areas that no measured change explains, after the images. */
+function pixelOnlySection(report: Report, opts: RenderOptions): string[] {
+  const areas = pixelOnlyAreas(report);
+  if (areas.length === 0) return [];
+  const limit = (opts.compact ?? 0) >= 2 ? 5 : 20;
+  const lines = areas.slice(0, limit).map((a) => {
+    const what = [a.element && `inside ${code(a.element)}`, a.note && escapeText(a.note)].filter(Boolean).join(': ') || 'no element explains it';
+    return `- ${code(captureLabel(a.capture, report.themes.length))} ${a.box.width}×${a.box.height}px at ${a.box.x},${a.box.y} — ${what}`;
+  });
+  if (areas.length > limit) lines.push(`- …and ${areas.length - limit} more in \`report.json\``);
+  return ['#### Pixel changes with no measured change', '', ...lines, ''];
+}
+
+/** One line under a zoomed crop: what the changed areas inside it are. */
+function focusCaption(c: CaptureResult, index: number): string | undefined {
+  const box = c.diff?.focusBoxes?.[index];
+  if (!box || !c.styleDiff) return undefined;
+  const scale = c.diff!.scale;
+  const parts: string[] = [];
+  for (const r of c.styleDiff.regions) {
+    const area = { x: r.region.x / scale, y: r.region.y / scale, width: r.region.width / scale, height: r.region.height / scale };
+    if (area.x >= box.x + box.width || box.x >= area.x + area.width || area.y >= box.y + box.height || box.y >= area.y + area.height) continue;
+    const touching = r.changes.map((i) => c.styleDiff!.changes[i]).filter((x) => x.verified !== false);
+    // Name what was changed, not what moved because of it.
+    const first = touching.find((x) => !onlyEffects(x)) ?? touching[0];
+    if (first) parts.push(`${first.name}: ${causeText(first)}`);
+    else if (r.element) parts.push(`${r.element.name}: ${r.note}`);
+    else if (r.note) parts.push(r.note);
+  }
+  const unique = [...new Set(parts)];
+  if (unique.length === 0) return undefined;
+  return `<sub>${escapeText(unique.slice(0, 2).join('; '))}${unique.length > 2 ? ` (+${unique.length - 2} more)` : ''}</sub>`;
+}
+
+function imagesSection(report: Report, captures: CaptureResult[], opts: RenderOptions): string[] {
   const out: string[] = [];
   const themes = report.themes.length;
   for (const c of captures) {
@@ -91,20 +181,254 @@ function changedSection(report: Report, captures: CaptureResult[], opts: RenderO
     out.push('');
     const alt = `${captureLabel(c, themes)}: before, after and highlighted diff`;
     if (c.images.focus.length && (opts.compact ?? 0) < 3) {
-      for (const f of c.images.focus) out.push(img(opts.link(f), `${alt} (zoomed)`), '');
+      c.images.focus.forEach((f, i) => {
+        const pair = c.images.pairs?.[i];
+        const blink = c.images.blinks?.[i];
+        // The still pair comes first; the blinking GIF and the diff overlay stay folded away.
+        out.push(pair ? img(opts, opts.link(pair), `${captureLabel(c, themes)}: base and head side by side, changed area ${i + 1} outlined`) : img(opts, opts.link(f), `${alt} (zoomed)`), '');
+        const caption = focusCaption(c, i);
+        if (caption) out.push(caption, '');
+        if (pair && (opts.compact ?? 0) < 2) {
+          out.push('<details><summary>Blink and diff</summary>', '');
+          if (blink) out.push(img(opts, opts.link(blink), `${captureLabel(c, themes)}: area ${i + 1} switching between base and head`), '');
+          out.push(img(opts, opts.link(f), `${alt} (zoomed)`), '', '</details>', '');
+        }
+      });
       if (c.images.compare && (opts.compact ?? 0) < 1) {
-        out.push('<details><summary>Full page</summary>', '', img(opts.link(c.images.compare), alt), '', '</details>', '');
+        out.push('<details><summary>Full page</summary>', '', img(opts, opts.link(c.images.compare), alt), '', '</details>', '');
       }
     } else if (c.images.compare) {
-      out.push(img(opts.link(c.images.compare), alt), '');
+      out.push(img(opts, opts.link(c.images.compare), alt), '');
     } else if (c.status === 'removed' && c.images.base) {
-      out.push(img(opts.link(c.images.base), `${captureLabel(c, themes)} (base; missing on head)`, 480), '');
+      out.push(img(opts, opts.link(c.images.base), `${captureLabel(c, themes)} (base; missing on head)`, 480), '');
     } else if (c.images.head) {
-      out.push(img(opts.link(c.images.head), `${captureLabel(c, themes)} (head)`, 480), '');
+      out.push(img(opts, opts.link(c.images.head), `${captureLabel(c, themes)} (head)`, 480), '');
     }
-    for (const w of c.warnings.slice(0, 3)) out.push(`> ${w}`, '');
+    const env = c.fingerprint?.differences ?? [];
+    if (env.length) out.push(`> ⚠️ ${environmentWarning(env)}`, '');
+    for (const w of c.warnings.slice(0, INLINE_WARNINGS)) out.push(`> ${w}`, '');
   }
   return out;
+}
+
+const INLINE_WARNINGS = 3;
+
+/** "Base and head were captured differently (fonts loaded on / desktop/light; …)": the run is not a clean comparison. */
+export function notComparableNotice(report: Report): string {
+  const keys = report.notComparable!.map((n) => `${n.key} on ${n.captures.slice(0, 3).join(', ')}${n.captures.length > 3 ? ` +${n.captures.length - 3}` : ''}`);
+  return `**Base and head were captured differently** (${escapeText(keys.join('; '))}), so differences may come from the capture environment and an unchanged result is not a clean one.`;
+}
+
+export function environmentWarning(differences: string[]): string {
+  return `**The capture environment differed between base and head**, so this diff may come from it rather than from the code: ${escapeText(differences.join('; '))}.`;
+}
+/** Truncation has its own "Partial captures" notice. */
+const TRUNCATION_WARNING = /taller than capture\.maxHeight|cut at capture\.maxHeight/;
+
+/**
+ * Every warning not already printed next to a changed capture: report-level ones (dev server,
+ * detection notes) and those of unchanged or failed captures, grouped by capture.
+ */
+function warningsSection(report: Report, opts: RenderOptions): string[] {
+  const groups: Array<{ label?: string; items: string[] }> = [];
+  const general = report.warnings.filter((w) => !TRUNCATION_WARNING.test(w));
+  if (general.length) groups.push({ items: general });
+  for (const c of report.captures) {
+    const items = c.warnings.filter((w) => !TRUNCATION_WARNING.test(w)).slice(isShownChange(c) ? INLINE_WARNINGS : 0);
+    if (items.length) groups.push({ label: captureLabel(c, report.themes.length), items });
+  }
+  const total = groups.reduce((n, g) => n + g.items.length, 0);
+  if (total === 0) return [];
+  const limit = (opts.compact ?? 0) >= 2 ? 10 : 60;
+  const lines: string[] = [];
+  let shown = 0;
+  for (const g of groups) {
+    const items = g.items.slice(0, Math.max(0, limit - shown));
+    shown += items.length;
+    if (items.length === 0) break;
+    if (!g.label) for (const w of items) lines.push(`- ${escapeText(w)}`);
+    else if (items.length === 1) lines.push(`- ${code(g.label)}: ${escapeText(items[0])}`);
+    else lines.push(`- ${code(g.label)}:`, ...items.map((w) => `  - ${escapeText(w)}`));
+  }
+  if (total > shown) lines.push(`- …and ${total - shown} more in \`report.json\``);
+  if (total > 5) return [`<details><summary>Warnings (${total})</summary>`, '', ...lines, '', '</details>', ''];
+  return ['#### Warnings', '', ...lines, ''];
+}
+
+function utc(iso: string): string {
+  return iso.replace('T', ' ').replace(/\.\d+Z$|Z$/, ' UTC');
+}
+
+function distinct(values: string[]): string {
+  return [...new Set(values)].join(' / ');
+}
+
+/** One user agent, or one per viewport when they differ (mobile viewports send a phone's). */
+function userAgents(pairs: Array<[string, string]>): string {
+  const byViewport = new Map<string, string>();
+  for (const [viewport, ua] of pairs) if (!byViewport.has(viewport)) byViewport.set(viewport, ua);
+  const unique = [...new Set(byViewport.values())];
+  if (unique.length === 1) return code(unique[0]);
+  return [...byViewport].map(([viewport, ua]) => `${viewport} ${code(ua)}`).join('; ');
+}
+
+/** One row value per side, summarizing that side's fingerprints across captures. */
+function settingsRows(report: Report, side: 'base' | 'head'): Array<[string, string]> | undefined {
+  const captures = report.captures.filter((c) => c.fingerprint?.[side]);
+  if (captures.length === 0) return undefined;
+  const fps = captures.map((c) => c.fingerprint![side]!);
+  const viewports = new Map<string, string>();
+  for (const c of captures) {
+    const v = c.fingerprint![side]!.viewport;
+    if (!viewports.has(c.viewport)) viewports.set(c.viewport, `${c.viewport} ${v.width}×${v.height} @${v.deviceScaleFactor}x${v.isMobile ? ' mobile' : ''}`);
+  }
+  const union = (pick: (f: (typeof fps)[number]) => string[]) => [...new Set(fps.flatMap(pick))].sort();
+  const loaded = union((f) => f.fonts.loaded);
+  const failed = union((f) => f.fonts.failed);
+  const pending = union((f) => f.fonts.pending);
+  const fonts = [loaded.length ? loaded.join(', ') : 'none', failed.length && `failed: ${failed.join(', ')}`, pending.length && `still loading: ${pending.join(', ')}`].filter(Boolean).join('; ');
+  const commit = fps.find((f) => f.commit)?.commit;
+  const frozen = distinct(
+    fps.map((f) =>
+      [f.freeze.clock ? `clock ${utc(f.freeze.clock)}` : 'clock running', f.freeze.seed === null ? 'not seeded' : `seed ${f.freeze.seed}`, f.freeze.animations ? 'animations off' : 'animations on', f.freeze.fonts ? 'fonts awaited' : 'fonts not awaited'].join(' · '),
+    ),
+  );
+  const schemes = [...new Set(fps.map((f) => f.media.colorScheme))].join('/');
+  const media = distinct(fps.map((f) => [f.media.reducedMotion === 'reduce' ? 'reduced motion' : 'motion allowed', schemes, f.media.locale, f.media.timezone].join(' · ')));
+  return [
+    ['Commit', commit ? code(commit.slice(0, 7)) : 'deployed preview'],
+    ['Viewports', [...viewports.values()].join(' · ')],
+    ['Browser', distinct(fps.map((f) => `${f.browser.name} ${f.browser.version}`))],
+    ['Web fonts', fonts],
+    ['Frozen', frozen],
+    ['Media', media],
+    ['Test data', distinct(fps.map((f) => f.data))],
+    ['Base cache', distinct(fps.filter((f) => f.cache).map((f) => `${f.cache!.hit ? 'reused' : 'captured now'} (${code(f.cache!.key)})`))],
+    ['User agent', userAgents(captures.map((c) => [c.viewport, c.fingerprint![side]!.browser.userAgent]))],
+  ];
+}
+
+/** Collapsed table of what base and head were captured with (the fingerprints), "same" where head matches. */
+export function captureSettingsSection(report: Report): string[] {
+  const table = settingsTable(report);
+  if (table.length === 0) return [];
+  return ['<details><summary>Capture settings</summary>', '', ...table, '</details>', ''];
+}
+
+function settingsTable(report: Report): string[] {
+  const base = settingsRows(report, 'base');
+  const head = settingsRows(report, 'head');
+  if (!base && !head) return [];
+  const rows = (base ?? head)!.map(([label], i) => [label, base?.[i][1] ?? '—', head?.[i][1] ?? '—'] as const);
+  const table = rows
+    .filter(([label, b, h]) => label !== 'User agent' && (b || h))
+    .map(([label, b, h]) => `| ${label} | ${cell(b) || '—'} | ${label !== 'Commit' && h === b ? 'same' : cell(h) || '—'} |`);
+  const [, uaBase, uaHead] = rows.find(([label]) => label === 'User agent')!;
+  const ua = uaBase === uaHead ? `User agent: ${uaBase}` : `User agent: base ${uaBase}; head ${uaHead}`;
+  return ['| | Base | Head |', '|---|---|---|', ...table, '', `<sub>${ua}</sub>`, ''];
+}
+
+/** The fingerprint table and the timing of the run in one collapsed block, last in the comment. */
+export function settingsAndTimingSection(report: Report): string[] {
+  const table = settingsTable(report);
+  const t = report.timings;
+  if (table.length === 0 && !t) return [];
+  const summary = [table.length && 'Capture settings', t && 'timing'].filter(Boolean).join(' and ');
+  const timing = t ? ['**Timing**', '', timingLine(t), '', ...timingTable(t), ''] : [];
+  return [`<details><summary>${summary[0].toUpperCase()}${summary.slice(1)}${t ? ` · ⏱ ${duration(t.totalMs)}` : ''}</summary>`, '', ...table, ...timing, '</details>', ''];
+}
+
+/** A measured duration for people: 0.3s, 3.2s, 41s, 1m 12s. */
+export function duration(ms: number): string {
+  if (ms < 10_000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+function sideSteps(t: SideTiming): string[] {
+  if (t.mode === 'url') return ['deployed preview'];
+  if (t.cached) return ['cached: captures restored from the base cache, nothing built or started'];
+  return [
+    t.checkoutMs !== undefined ? `checkout ${duration(t.checkoutMs)}` : '',
+    t.install ? `install ${duration(t.install.ms)} (${t.install.kind}${t.install.retried ? ', after a failed start' : ''})` : '',
+    t.buildMs !== undefined ? `build ${duration(t.buildMs)}` : '',
+    t.bootMs !== undefined ? `boot ${duration(t.bootMs)}` : '',
+  ].filter(Boolean);
+}
+
+function sideBrief(t: SideTiming): string {
+  if (t.mode === 'url') return 'deployed preview';
+  if (t.cached) return `cached ${duration(t.totalMs)}`;
+  return [t.install && `${t.install.kind} ${duration(t.install.ms)}`, t.buildMs !== undefined && `build ${duration(t.buildMs)}`, t.bootMs !== undefined && `boot ${duration(t.bootMs)}`].filter(Boolean).join(', ');
+}
+
+const EXTRA_LABELS: Array<[keyof NonNullable<Timings['extras']>, string, string]> = [
+  ['variantsMs', 'variants', 'variant screenshots'],
+  ['motionMs', 'motion', 'motion clips'],
+  ['a11yMs', 'a11y', 'axe and focus order (during capture) and the delta'],
+  ['tokensMs', 'tokens', 'the token audit'],
+  ['elementMapMs', 'element map', 'element maps of every capture (taken during capture)'],
+  ['styleDiffMs', 'style diff', 'matching elements, measuring style changes, naming changed areas'],
+];
+
+/** The whole run on one line; every number is measured. */
+export function timingLine(t: Timings): string {
+  const parts = [`⏱ ${duration(t.totalMs)} total`, `detect ${duration(t.detectMs)}`];
+  if (t.prepare) parts.push(`prepare ${duration(t.prepare.wallMs)} (base: ${sideBrief(t.prepare.base)} ‖ head: ${sideBrief(t.prepare.head)})`);
+  if (t.browserMs !== undefined) parts.push(`browser ${duration(t.browserMs)}`);
+  if (t.capture) parts.push(`capture ${duration(t.capture.ms)} (${t.capture.count} screenshot${t.capture.count === 1 ? '' : 's'}${t.capture.slowest ? `, slowest ${duration(t.capture.slowest.ms)}` : ''})`);
+  if (t.diffMs !== undefined) parts.push(`diff ${duration(t.diffMs)}`);
+  for (const [key, label] of EXTRA_LABELS) if (t.extras?.[key] !== undefined) parts.push(`${label} ${duration(t.extras[key]!)}`);
+  return parts.join(' · ');
+}
+
+function timingTable(t: Timings): string[] {
+  const rows: Array<[string, number, string]> = [['detect', t.detectMs, 'changed files → routes']];
+  if (t.prepare) {
+    rows.push(['base', t.prepare.base.totalMs, sideSteps(t.prepare.base).join(' · ')], ['head', t.prepare.head.totalMs, sideSteps(t.prepare.head).join(' · ')]);
+    rows.push(['prepare', t.prepare.wallMs, 'base and head at the same time (wall clock)']);
+  }
+  if (t.browserMs !== undefined) rows.push(['browser', t.browserMs, 'Chromium check and launch']);
+  if (t.capture) {
+    const slowest = t.capture.slowest ? ` · slowest ${code(t.capture.slowest.id)} (${t.capture.slowest.side}) ${duration(t.capture.slowest.ms)}` : '';
+    rows.push(['capture', t.capture.ms, `${t.capture.count} screenshots${slowest}`]);
+  }
+  if (t.diffMs !== undefined) rows.push(['diff', t.diffMs, 'pixel diffs and composites']);
+  for (const [key, label, note] of EXTRA_LABELS) if (t.extras?.[key] !== undefined) rows.push([label, t.extras[key]!, note]);
+  rows.push(['total', t.totalMs, 'wall clock until the report was written']);
+  return ['| Phase | Time | |', '|---|---|---|', ...rows.map(([phase, ms, note]) => `| ${phase} | ${duration(ms)} | ${cell(note)} |`)];
+}
+
+/** timingLine as the summary of a collapsed table with one row per phase. */
+export function timingSection(t: Timings): string[] {
+  return [`<details><summary>${timingLine(t)}</summary>`, '', ...timingTable(t), '', '</details>', ''];
+}
+
+function dependencyList(changes: DependencyChange[], limit: number): string {
+  const shown = changes.slice(0, limit).map((c) => code(describeDependency(c)));
+  return shown.join(', ') + (changes.length > limit ? `, …and ${changes.length - limit} more in \`report.json\`` : '');
+}
+
+/** Dependency changes: UI ones caused captures; the rest, and unreadable lockfiles, were not checked visually. */
+function dependencySection(report: Report, opts: RenderOptions): string[] {
+  const deps = report.detect?.dependencies ?? [];
+  const limit = (opts.compact ?? 0) >= 2 ? 5 : 15;
+  const out: string[] = [];
+  const ui = deps.filter((d) => d.ui);
+  const other = deps.filter((d) => !d.ui);
+  if (ui.length) out.push(`UI dependency changes (routes captured because of them): ${dependencyList(ui, limit)}`, '');
+  if (other.length) out.push(`Dependency changes not checked visually: ${dependencyList(other, limit)}`, '');
+  for (const file of report.detect?.unparsedLockfiles ?? []) out.push(`${code(file)} changed, but its packages could not be read, so UI packages in it were not checked.`, '');
+  return out;
+}
+
+function unmatchedSection(report: Report): string[] {
+  const files = report.detect?.unmatched ?? [];
+  if (files.length === 0) return [];
+  const label = 'Changed UI files that match no route (not captured)';
+  if (files.length <= 8) return [`${label}: ${files.map(code).join(', ')}`, ''];
+  return [`<details><summary>${label}: ${files.length}</summary>`, '', ...files.slice(0, 100).map((f) => `- ${code(f)}`), files.length > 100 ? `- …and ${files.length - 100} more` : '', '</details>', ''];
 }
 
 function variantSection(report: Report, opts: RenderOptions): string[] {
@@ -118,11 +442,11 @@ function variantSection(report: Report, opts: RenderOptions): string[] {
     for (const item of group.items) out.push(`<th>${escapeHtml(`${group.param}=${item.value}`)}</th>`);
     out.push('</tr><tr>');
     for (const item of group.items) {
-      if (item.image && !imagesEnabled) {
-        out.push(`<td valign="top">${img('', `${group.param}=${item.value}`)}</td>`);
+      if (item.image && !imagesOn(opts)) {
+        out.push(`<td valign="top">${img(opts, '', `${group.param}=${item.value}`)}</td>`);
       } else if (item.image) {
         const href = escapeHtml(opts.link(item.image));
-        out.push(`<td valign="top"><a href="${href}">${img(opts.link(item.image), `${group.route.path} ${group.param}=${item.value}`, width)}</a></td>`);
+        out.push(`<td valign="top"><a href="${href}">${img(opts, opts.link(item.image), `${group.route.path} ${group.param}=${item.value}`, width)}</a></td>`);
       } else {
         out.push(`<td valign="top">capture failed: ${escapeHtml(item.error ?? 'unknown')}</td>`);
       }
@@ -138,8 +462,12 @@ function variantSection(report: Report, opts: RenderOptions): string[] {
 }
 
 function motionSection(report: Report, opts: RenderOptions): string[] {
-  if (report.motion.length === 0) return [];
-  const out: string[] = ['#### Motion', ''];
+  const notes = [
+    report.motionNoAnimation?.length && `Motion not recorded for ${report.motionNoAnimation.map(code).join(', ')}: their changed files touch no transition, animation or interaction state.`,
+    report.motionSkipped?.length && `Motion not recorded for unchanged routes: ${report.motionSkipped.map(code).join(', ')}.`,
+  ].filter((n): n is string => Boolean(n));
+  if (report.motion.length === 0) return notes.length ? [...notes.map((n) => `<sub>${n}</sub>`), ''] : [];
+  const out: string[] = ['#### Motion', '', ...notes.flatMap((n) => [`<sub>${n}</sub>`, ''])];
   for (const clip of report.motion) {
     const steps = clip.steps.length ? clip.steps.join(', ') : 'page load';
     out.push(`**${code(clip.route.path)}** · ${clip.viewport} — ${escapeText(steps)}`, '');
@@ -147,9 +475,9 @@ function motionSection(report: Report, opts: RenderOptions): string[] {
       out.push(`> clip failed: ${clip.error}`, '');
       continue;
     }
-    if (clip.gif) out.push(img(opts.link(clip.gif), `${clip.route.path} motion: before and after`), '');
+    if (clip.gif) out.push(img(opts, opts.link(clip.gif), `${clip.route.path} motion: before and after`), '');
     for (const w of clip.warnings ?? []) out.push(`> ⚠️ ${escapeText(w)}`, '');
-    const links = imagesEnabled
+    const links = imagesOn(opts)
       ? [clip.webm?.base && `[before.webm](${opts.link(clip.webm.base)})`, clip.webm?.head && `[after.webm](${opts.link(clip.webm.head)})`].filter(Boolean)
       : [];
     if (links.length) out.push(links.join(' · '), '');
@@ -212,7 +540,7 @@ function tokenSection(report: Report, opts: RenderOptions): string[] {
     const lines = ['| Property | Value | Nearest token | Elements |', '|---|---|---|---|'];
     for (const f of rows.slice(0, limit)) {
       const more = f.count > f.selectors.length ? ` (+${f.count - f.selectors.length})` : '';
-      lines.push(`| ${f.property} | ${code(f.value)} | ${f.nearest ? code(f.nearest) : '—'} | ${cell(f.selectors.map(code).join(', '))}${more} |`);
+      lines.push(`| ${f.property} | ${code(f.value)} | ${f.nearest ? code(f.nearest) : 'no close token'} | ${cell(f.selectors.map(code).join(', '))}${more} |`);
     }
     if (rows.length > limit) lines.push(`| …${rows.length - limit} more in \`report.json\` | | | |`);
     return lines;
@@ -232,65 +560,163 @@ function tokenSection(report: Report, opts: RenderOptions): string[] {
   return out;
 }
 
-function renderOnce(report: Report, opts: RenderOptions): string {
+interface Section {
+  /** Named in the note when the section is left out to fit the size limit. */
+  name?: string;
+  /** Higher stays longer; sections without a name are never left out. */
+  priority: number;
+  lines: string[];
+}
+
+/**
+ * The comment in reading order: the verdict, then measured changes by route, then the image pairs,
+ * then pixel changes nothing measured explains, the rest, and last the fingerprint and timing.
+ */
+function sections(report: Report, opts: RenderOptions): Section[] {
   const compact = opts.compact ?? 0;
   const s = report.stats;
-  const out: string[] = [stickyMarker(opts.id)];
-  const counts = [s.changed && `${s.changed} changed`, s.added && `${s.added} new`, s.removed && `${s.removed} removed`, s.errors && `${s.errors} failed`, `${s.unchanged} unchanged`]
-    .filter(Boolean)
-    .join(', ');
-  out.push(`### ${opts.title} — ${counts}`, '');
-  out.push(
+  const notChecked = notCheckedReason(report);
+  const head: string[] = [stickyMarker(opts.id), `### ${opts.title} — ${verdict(report).text}`, ''];
+  const counts = notChecked
+    ? []
+    : [`${s.captures} capture${s.captures === 1 ? '' : 's'}`, s.changed && `${s.changed} changed`, s.added && `${s.added} new`, s.removed && `${s.removed} removed`, s.errors && `${s.errors} failed`, `${s.unchanged} unchanged`].filter(Boolean);
+  head.push(
     `**Base** ${code(sideLabel(report.base))} → **Head** ${code(sideLabel(report.head))} · ${report.routes.length} route${report.routes.length === 1 ? '' : 's'} · ${report.viewports.join(', ')} · ${report.themes.join(', ')}`,
     '',
   );
-  out.push('#### Summary', '', (opts.summary?.trim() || autoSummary(report)).trim(), '');
+  if (counts.length) head.push(`<sub>${counts.join(' · ')}</sub>`, '');
+  if (report.regions) {
+    const list = (selectors: string[]) => selectors.map(code).join(', ');
+    const parts = [report.regions.focus.length && `Focused on ${list(report.regions.focus)} (only changes inside are compared)`, report.regions.ignore.length && `ignored ${list(report.regions.ignore)}`].filter(Boolean);
+    const line = parts.join('; ');
+    head.push(`<sub>${line[0].toUpperCase()}${line.slice(1)}.</sub>`, '');
+  }
+  if (report.notComparable) head.push(`> ⚠️ ${notComparableNotice(report)}`, '');
+  if (notChecked) head.push(`> ${notCheckedNotice(notChecked)}`, '');
+  const out: Section[] = [{ priority: 100, lines: head }];
+  const summary = opts.summary?.trim();
+  if (summary) out.push({ name: 'summary', priority: 60, lines: ['#### Summary', '', summary, ''] });
 
-  const changed = report.captures.filter((c) => c.status === 'changed' || c.status === 'added' || c.status === 'removed');
+  const changed = report.captures.filter(isShownChange);
   const failed = report.captures.filter((c) => c.status === 'error');
   const unchanged = report.captures.filter((c) => c.status === 'unchanged');
-  if (changed.length) out.push('#### Changes', '', ...changedSection(report, changed, opts));
+  out.push({ name: 'measured changes', priority: 90, lines: measuredSection(report, opts) });
+  if (changed.length) out.push({ name: 'images', priority: 80, lines: ['#### Images', '', ...imagesSection(report, changed, opts)] });
+  out.push({ name: 'pixel changes with no measured change', priority: 70, lines: pixelOnlySection(report, opts) });
   if (failed.length) {
-    out.push('#### Failed captures', '');
-    for (const c of failed) out.push(`- ${code(captureLabel(c, report.themes.length))}: ${c.error ?? 'unknown error'}`);
-    out.push('');
+    const lines = ['#### Failed captures', '', ...failed.map((c) => `- ${code(captureLabel(c, report.themes.length))}: ${c.error ?? 'unknown error'}`), ''];
+    out.push({ name: 'failed captures', priority: 75, lines });
   }
+  const cut = report.captures.filter((c) => c.truncated);
+  if (cut.length) {
+    const line = `> ⚠️ Partial captures: only the top of ${cut.map((c) => code(captureLabel(c, report.themes.length))).join(', ')} was compared (\`capture.maxHeight\`). Changes below that line are not shown.`;
+    out.push({ name: 'partial captures', priority: 75, lines: [line, ''] });
+  }
+  out.push({ name: 'warnings', priority: 50, lines: warningsSection(report, opts) });
+  const notCaptured = [...(report.detect?.skippedRoutes ?? []), ...(report.detect?.needsExample ?? []).map((n) => n.route)];
+  if (notCaptured.length) out.push({ name: 'routes not captured', priority: 45, lines: [`<sub>Affected but not captured: ${notCaptured.map(code).join(', ')}</sub>`, ''] });
+  out.push({ name: 'variants', priority: 40, lines: variantSection(report, opts) });
+  out.push({ name: 'motion', priority: 40, lines: motionSection(report, opts) });
+  out.push({ name: 'accessibility', priority: 40, lines: a11ySection(report, opts) });
+  out.push({ name: 'design tokens', priority: 40, lines: tokenSection(report, opts) });
+  out.push({ name: 'unmatched files and dependencies', priority: 30, lines: [...unmatchedSection(report), ...dependencySection(report, opts)] });
   if (unchanged.length && opts.showUnchanged !== false) {
     const list = unchanged.slice(0, compact >= 2 ? 10 : 60).map((c) => `- ${code(captureLabel(c, report.themes.length))}`);
     if (unchanged.length > list.length) list.push(`- …and ${unchanged.length - list.length} more`);
-    out.push(`<details><summary>Unchanged (${unchanged.length})</summary>`, '', ...list, '', '</details>', '');
+    out.push({ name: 'unchanged list', priority: 20, lines: [`<details><summary>Unchanged (${unchanged.length})</summary>`, '', ...list, '', '</details>', ''] });
   }
-  out.push(...variantSection(report, opts), ...motionSection(report, opts), ...a11ySection(report, opts), ...tokenSection(report, opts));
-  const notCaptured = [...(report.detect?.skippedRoutes ?? []), ...(report.detect?.needsExample ?? []).map((n) => n.route)];
-  if (notCaptured.length) out.push(`<sub>Affected but not captured: ${notCaptured.map(code).join(', ')}</sub>`, '');
-  const cut = report.captures.filter((c) => c.truncated);
-  if (cut.length) {
-    out.push(`> ⚠️ Partial captures: only the top of ${cut.map((c) => code(captureLabel(c, report.themes.length))).join(', ')} was compared (\`capture.maxHeight\`). Changes below that line are not shown.`, '');
-  }
-  const footer = [`ui-diff ${report.tool.version}`, report.base.shortSha && `base ${code(report.base.shortSha)}`, report.head.shortSha && `head ${code(report.head.shortSha)}`, opts.storageNote, `generated ${report.createdAt.replace('T', ' ').replace(/\.\d+Z$/, ' UTC')}`]
+  out.push({ name: 'capture settings and timing', priority: 10, lines: settingsAndTimingSection(report) });
+  const full = imagesOn(opts) ? `[report.json](${opts.link('report.json')})` : code('.ui-diff/report.json');
+  const footer = [`ui-diff ${report.tool.version}`, report.base.shortSha && `base ${code(report.base.shortSha)}`, report.head.shortSha && `head ${code(report.head.shortSha)}`, `full report: ${full}`, opts.storageNote, `generated ${report.createdAt.replace('T', ' ').replace(/\.\d+Z$/, ' UTC')}`]
     .filter(Boolean)
     .join(' · ');
-  out.push(`<sub>${footer}</sub>`);
+  out.push({ priority: 100, lines: [`<sub>${footer}</sub>`, metaLine(report)] });
+  return out.filter((x) => x.lines.length);
+}
+
+function join(parts: Section[], dropped: string[], opts: RenderOptions): string {
+  const lines = parts.flatMap((p) => p.lines);
+  if (dropped.length || (opts.compact ?? 0) > 0) {
+    const full = imagesOn(opts) ? `[report.json](${opts.link('report.json')})` : code('.ui-diff/report.json');
+    const what = dropped.length ? `Left out to fit GitHub’s comment size limit: ${dropped.join(', ')}.` : 'Shortened to fit GitHub’s comment size limit.';
+    lines.splice(lines.length - 2, 0, `<sub>${what} Everything is in ${full}.</sub>`, '');
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function metaLine(report: Report): string {
   const meta = { head: report.head.sha ?? report.head.url ?? null, base: report.base.sha ?? report.base.url ?? null, createdAt: report.createdAt };
-  out.push(`<!-- ui-diff:meta ${JSON.stringify(meta)} -->`);
-  if (compact >= 3) out.push('', '<sub>Some details were omitted to fit GitHub’s comment size limit; see `.ui-diff/report.json`.</sub>');
+  return `<!-- ui-diff:meta ${JSON.stringify(meta)} -->`;
+}
+
+const LAST_RESULT = /<!-- ui-diff:last-result head=(\S*) -->/;
+const META = /<!-- ui-diff:meta (\{.*\}) -->/;
+
+/** The visible part of the last comment that showed UI changes, and its head, from a previous comment body. */
+function lastResult(previous: string | undefined): { body: string; head?: string } | undefined {
+  if (!previous) return undefined;
+  const kept = LAST_RESULT.exec(previous);
+  if (kept) {
+    const inner = previous.slice(kept.index + kept[0].length);
+    const end = inner.lastIndexOf('</details>');
+    return { body: (end >= 0 ? inner.slice(0, end) : inner).trim(), head: kept[1] || undefined };
+  }
+  const lines = previous.split('\n').filter((l) => !l.startsWith('<!-- ui-diff:sticky ') && !META.test(l));
+  const visible = lines.join('\n').trim();
+  if (!visible || /^### .* — no UI files changed in /.test(visible.split('\n')[0])) return undefined;
+  let head: string | undefined;
+  try {
+    head = (JSON.parse(META.exec(previous)?.[1] ?? '{}') as { head?: string | null }).head ?? undefined;
+  } catch {
+    head = undefined;
+  }
+  return { body: visible, head };
+}
+
+/**
+ * Replacement for an existing sticky comment once the PR no longer changes UI files: the top
+ * line says so, and the last result that had UI changes stays below it, collapsed.
+ */
+export function noUiChangeComment(report: Report, opts: { id: string; title: string }, previousBody?: string): string {
+  const head = report.head.shortSha ?? report.head.sha?.slice(0, 7) ?? report.head.label;
+  const out = [stickyMarker(opts.id), `### ${opts.title} — no UI files changed in ${code(head)}`, metaLine(report)];
+  const last = lastResult(previousBody);
+  if (last) {
+    const lastHead = last.head && /^[0-9a-f]{7,40}$/i.test(last.head) ? last.head.slice(0, 7) : undefined;
+    out.push(
+      '',
+      `<details><summary>Last result with UI changes${lastHead ? ` (head ${code(lastHead)})` : ''}</summary>`,
+      `<!-- ui-diff:last-result head=${lastHead ?? ''} -->`,
+      '',
+      last.body,
+      '',
+      '</details>',
+    );
+  }
   return `${out.join('\n')}\n`;
 }
 
-/** Renders the sticky PR comment, dropping detail in tiers until it fits GitHub's size limit. */
+/**
+ * Renders the sticky PR comment. To fit GitHub's size limit it first shortens sections in tiers,
+ * then leaves out whole sections, lowest priority first, and says which ones.
+ */
 export function renderComment(report: Report, opts: RenderOptions): string {
   const max = opts.maxLength ?? MAX_COMMENT_LENGTH;
-  imagesEnabled = opts.images !== false;
-  try {
-    let body = '';
-    for (let compact = opts.compact ?? 0; compact <= 3; compact++) {
-      body = renderOnce(report, { ...opts, compact });
-      if (body.length <= max) return body;
-    }
-    return `${body.slice(0, max - 200)}\n\n<sub>Truncated to fit GitHub’s comment size limit.</sub>\n${stickyMarker(opts.id)}\n`;
-  } finally {
-    imagesEnabled = true;
+  let body = '';
+  for (let compact = opts.compact ?? 0; compact <= 3; compact++) {
+    body = join(sections(report, { ...opts, compact }), [], { ...opts, compact });
+    if (body.length <= max) return body;
   }
+  const kept = sections(report, { ...opts, compact: 3 });
+  const dropped: string[] = [];
+  const order = kept.filter((x) => x.name).sort((a, b) => a.priority - b.priority);
+  for (const section of order) {
+    kept.splice(kept.indexOf(section), 1);
+    dropped.push(section.name!);
+    body = join(kept, dropped, { ...opts, compact: 3 });
+    if (body.length <= max) return body;
+  }
+  return `${body.slice(0, max - 200)}\n\n<sub>Truncated to fit GitHub’s comment size limit.</sub>\n${stickyMarker(opts.id)}\n`;
 }
 
 /** Report-relative image paths referenced by the comment (what needs uploading). */

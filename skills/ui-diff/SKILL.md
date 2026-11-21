@@ -1,12 +1,15 @@
 ---
 name: ui-diff
 description: Before/after screenshots, highlighted pixel diffs and a short UX summary for pull requests that change UI, posted as one sticky PR comment whose images stay private in the same repository. Use when someone wants reviewers to see a frontend change ("add before/after screenshots to the PR", "what does this PR look like", "visual diff", "UI review", "did this CSS change break anything"), or wants to compare design variants (?hero=1..4), record hover/transition clips, audit design-token usage, check accessibility regressions on changed screens, or capture auth-protected preview deployments.
+metadata:
+  version: "2.0.0"
 ---
 
 # ui-diff
 
 Renders the affected routes of a web app at the PR's **base** and **head**, diffs the
-screenshots, and posts one PR comment with `before | after | diff` images and a UX summary.
+screenshots, and posts one PR comment that starts with the verdict, then the measured element
+changes, still `base | head` pairs of each changed area and your UX summary.
 The mechanics are scripted; your job is the judgment: which routes matter, what the changes
 mean for users, and whether it is OK to post.
 
@@ -43,8 +46,11 @@ git status --short
   blocks a run; WARN (no gh login, no remote) only matters for publishing or `--pr`.
 - **Posting to a PR:** pass `--pr <n>` so head is the pushed commit. Mention uncommitted or unpushed
   work, because it will not appear.
-- **Checking work in progress:** omit `--head`; the working tree (including uncommitted changes)
-  is snapshotted into a worktree and labelled as such.
+- **Checking work in progress:** `node "$SKILL/bin/ui-diff.mjs" check` diffs the working tree
+  (uncommitted changes included) against the merge base with the default branch (`--base <ref>`
+  to change it), prints a short summary with the measured changes, writes `.ui-diff/out/` and
+  posts nothing; exit 0 no visual changes, 1 changes, 2 errors (`--json` for JSON). `run` without
+  `--head` does the same into `.ui-diff/` for a later `publish`.
 - **Deployed previews:** pass `--base-url` / `--head-url` (or `preview` in the config). For
   protected previews configure `auth` once; see `references/privacy.md`.
 
@@ -54,17 +60,25 @@ git status --short
 node "$SKILL/bin/ui-diff.mjs" detect --pr <n>
 ```
 
-It maps changed files to routes through `routes[].files` and `globalFiles` in the config, then
+Its JSON starts with `status`: `capture` (routes to capture), `nothing-mapped` (UI files that match
+no route) or `no-ui-changes`. It maps changed files to routes through `routes[].files` and `globalFiles` in the config, then
 framework conventions (Next.js, SvelteKit, Nuxt, Astro, Remix, TanStack Router, plain HTML) and an import graph
 (relative imports, tsconfig aliases, package.json `#` imports, workspace packages, CSS `@import`/`url()`, HTML `href`/`src`).
 The JSON lists each route with `reasons` and `confidence`, plus:
 
 - `unmatched`: UI files it could not place. Find their pages yourself (grep for imports) and pass
   them with `--routes`.
+- If the user only cares about part of a page, or a part is noise (ads, live feeds), set `focus` or
+  `ignore` selectors in the config; a selector that matches nothing is reported as a warning.
 - `needsExample`: dynamic routes (`/blog/[slug]`). Find a real id and pass `--routes /blog/hello`.
 - `notes`: e.g. routes beyond `detect.maxRoutes`.
+- `dependencies`: changed packages from `package.json` and lockfiles. A `ui: true` one (React,
+  Tailwind, a component library; `detect.uiPackages`) makes every route affected; mention the
+  others as not checked visually.
 
-If no UI file changed, say so and stop; do not produce an empty report. Tell the user in one or
+If no UI file changed, say so and stop; do not produce an empty report. If UI files changed but
+none maps to a route (`run` prints `"status": "nothing-mapped"` and a `notChecked` reason), nothing
+was checked: resolve the routes yourself or tell the user; never report that as "no visual changes". Tell the user in one or
 two lines which routes you will capture and why. Remember routes that are affected but not
 captured (login walls, modals, limits): they go in the summary so "no change" is not read as
 an all-clear.
@@ -78,15 +92,18 @@ node "$SKILL/bin/ui-diff.mjs" run --pr <n> [--routes "/,/pricing"] [--viewports 
 
 In one go it creates git worktrees for base (the merge base) and head, links or installs
 dependencies, starts each app on a free port in its own process group, captures every
-route × viewport × theme, diffs with pixelmatch, composes `before | after | diff` images (full
-page plus zoomed crops of the changed areas), runs the enabled extras, and cleans up. Captures are
-deterministic: animations and transitions finished, fonts and images awaited, `Math.random` and
-`crypto` seeded, scrollbars hidden, scroll reset, optional frozen clock and masked selectors, and
+route × viewport × theme, diffs with pixelmatch, writes per changed area a still `base | head`
+pair with the changed boxes outlined, a blink GIF and a `before | after | diff` crop (plus the full
+page), runs the enabled extras, and cleans up. Captures are
+deterministic (`freeze`, on by default): `Date` frozen at run start, `Math.random` and `crypto`
+seeded, animations, transitions and the caret stopped, web fonts and images awaited; plus hidden
+scrollbars, scroll reset and masked selectors (`capture.mask`, for carousels and live counters), and
 each screenshot is retaken until consecutive shots match (if something keeps moving, the page's
 JavaScript timers are paused for the final shots).
 
 The JSON result has `stats`, `changed` (with image paths), `variants`, `motion`, `a11y`, `tokens`,
-`warnings`, `notCaptured` and `unmatchedFiles`. Add `--themes light,dark` when colors or tokens
+`timing` (one measured line: detect, prepare per side, capture, diff, extras; `timings` in
+`report.json` has the numbers), `warnings`, `notCaptured` and `unmatchedFiles`. Add `--themes light,dark` when colors or tokens
 changed. If it fails, the error names the step and the log in `.ui-diff/logs/` (common causes and
 fixes: `references/troubleshooting.md`); fix the cause
 (missing env var, wrong `startCommand`, auth) and rerun. Never post a one-sided result. A capture
@@ -96,22 +113,34 @@ an earlier run): do not publish until a rerun succeeds.
 
 ## 4. Review and write the UX summary
 
-Open the images before writing (focus crops `compare/*__focus-*.png` first, then the full
-composites, `variants/*__strip.png` and `motion/*.gif`). Read `.ui-diff/report.json` for the
-measured data, and start from `.ui-diff/summary.auto.md`. Write `.ui-diff/summary.md` for a
+Start from the measured changes: `captures[].styleDiff.changes` in `report.json` names each changed
+element with exact before → after values (padding, color, radius, text, added, removed, reordered),
+and `styleDiff.regions` says which element each changed area belongs to; quote those values
+instead of estimating from pixels. A change with `verified: false` did not pass the check (weak
+match, or no changed pixels under it): its `unverified` reasons say why; do not state it as fact
+without the images. Open the images before writing (the still pairs `compare/*__pair-*.png` first,
+then the `compare/*__focus-*.png` diff crops, the full composites, `variants/*__strip.png` and
+`motion/*.gif`). Read `.ui-diff/report.json` for the measured data, and start from
+`.ui-diff/summary.auto.md`. The comment's first line is the verdict and the measured changes follow
+it, so the summary need not repeat them: say what they mean for users. Write `.ui-diff/summary.md` for a
 designer or PM who will not read the code:
 
 ```markdown
 **What changed**
-- **Hero CTA**: now a violet pill (radius 4 → 9999px, padding 8×14 → 12×24px) with a hover lift.
-- **Pricing**: Monthly/Yearly toggle added; the Pro card is highlighted with a "Most popular" badge.
+- **Primary button**: padding 8×14 → 10×18px, corner radius 4 → 8px. The link beside it shifts right, and the page below moves down 4px.
+- **Newsletter label**: "Work email" is now brand blue.
 
 **Worth a look**
-- The badge uses `#ff5a1f`, which is not a design token, and fails contrast (3.0:1).
-- The newsletter email field lost its visible label and jumps first in tab order (`tabindex="1"`).
+- The label is 3.45:1 in dark mode (`#2563eb` on `#0f172a`).
+- Button padding `10px` / `18px` and the 17px action gap are not spacing tokens.
 
 **Not checked:** `/settings` (needs login).
 ```
+
+A capture whose base and head environments differed (fonts, device pixel ratio, browser; see
+`fingerprint.differences` in `report.json`) gets a warning in the comment, and `notComparable` in
+the report makes the verdict say the captures were not comparable: name it in "worth a look" and do
+not describe that diff as a product change without checking the images.
 
 Guidelines: lead "worth a look" with likely-unintended changes (a page changed without its files
 changing, breakage at one viewport, new a11y issues, off-token values). Content that only moved
@@ -150,6 +179,9 @@ node "$SKILL/bin/ui-diff.mjs" publish --pr <n>
 - Exit code 3 means git could not read or push the repository (no push access, e.g. a fork, or
   missing git credentials; the error says which): use `--no-upload` for a text-only comment, or
   `--no-comment` to upload and print the markdown without posting.
+- When the report has no changed UI file, `publish` uploads nothing and creates no comment; an
+  existing sticky comment gets "no UI files changed in <sha>" as its top line, with the last result
+  that had UI changes kept below it, collapsed.
 - No PR yet: use `render` (or `publish --dry-run`) to produce the comment and offer to post once
   the PR exists.
 
@@ -164,7 +196,7 @@ After a PR closes, `node "$SKILL/bin/ui-diff.mjs" prune --closed` removes its im
 | Feature | Enable | What you get |
 |---|---|---|
 | Variant compare | `--variants hero=1..4` or `routes[].variants` | Head captured once per `?hero=` value, shown side by side in one table with tick boxes reviewers use to pick. |
-| Motion clips | `--motion` or `motion.enabled` + `routes[].motion.steps` | Short before/after GIF (and optional WebM) of a scripted hover/click/scroll, for transitions screenshots miss. Only routes with a visual change unless `--motion-all`; a single-frame clip is flagged "no motion detected". |
+| Motion clips | `--motion` or `motion.enabled` + `routes[].motion.steps` | Short before/after GIF (and optional WebM) of a scripted hover/click/scroll, for transitions screenshots miss. Only routes whose changed files touch motion (transitions, keyframes, `:hover`, the elements the steps target; transition-only changes included) unless `--motion-all`; a single-frame clip is flagged "no motion detected". |
 | Token audit | `--tokens tokens.json` or `tokens.enabled` | Computed colors, spacing, radii and type in changed areas that match no token (JSON, CSS variables or StyleX `*.stylex.ts`; `--tokens auto` finds them), with selectors and the nearest token. |
 | Protected previews | `--base-url/--head-url` + `auth` | Captures behind Vercel Authentication and similar, with credentials from env vars sent only to the preview origin. |
 | Accessibility delta | `--a11y` or `a11y.enabled` | axe-core on both sides; only new and fixed issues (contrast, labels, focus), plus tab-order changes. |

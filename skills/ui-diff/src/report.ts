@@ -1,6 +1,11 @@
+import type { MeasuredRow } from './verdict.js';
 import type { A11yIssue, FocusDelta } from './a11y.js';
+import { describeDependency, type DependencyChange } from './deps.js';
+import type { ElementChange, RegionExplanation } from './elements.js';
 import type { Box } from './image.js';
+import { UiDiffError } from './log.js';
 import type { AggregatedFinding } from './tokens.js';
+import { VERSION } from './version.js';
 
 export type CaptureStatus = 'changed' | 'unchanged' | 'added' | 'removed' | 'error';
 
@@ -31,11 +36,59 @@ export interface CaptureResult {
     shifted?: ShiftedRun[];
     /** Height (CSS px) of base content with no counterpart on head. */
     removedHeight?: number;
+    /** Areas shown in the zoomed crops (`images.focus`, same order), CSS px. */
+    focusBoxes?: Box[];
   };
   /** Paths relative to the output directory. */
-  images: { base?: string; head?: string; diff?: string; compare?: string; focus: string[] };
+  /**
+   * focus: before | after | diff crops of the changed areas; pairs: the same areas as a still
+   * base | head pair with the changed boxes outlined; blinks: the same areas as a blinking GIF.
+   */
+  images: { base?: string; head?: string; diff?: string; compare?: string; focus: string[]; pairs?: string[]; blinks?: string[] };
   warnings: string[];
   truncated: boolean;
+  /** What each side was rendered with; set when both sides were captured. */
+  fingerprint?: CaptureFingerprint;
+  /** Size of each side's element map (styles/<side>/<id>.json); capped when capture.styleMaxElements cut it short. */
+  elementMap?: Partial<Record<'base' | 'head', { elements: number; capped?: boolean }>>;
+  styleDiff?: CaptureStyleDiff;
+  /** Focus and ignore selectors of this capture; focusOnly when the diff was limited to the focused elements. */
+  regions?: { focus: string[]; ignore: string[]; focusOnly: boolean };
+}
+
+/** What one side of a capture was rendered with, measured in the page. No paths, hosts, users or env values. */
+export interface SideFingerprint {
+  /** Commit the side was built from; absent for deployed previews. */
+  commit?: string;
+  viewport: { width: number; height: number; deviceScaleFactor: number; isMobile: boolean };
+  browser: { name: string; version: string; userAgent: string };
+  fonts: { loaded: string[]; failed: string[]; pending: string[] };
+  freeze: { clock: string | null; seed: number | null; animations: boolean; fonts: boolean };
+  media: { reducedMotion: string; colorScheme: string; locale: string; timezone: string };
+  /** `fingerprint.dataLabel`, or "not declared". */
+  data: string;
+  /** Base side only: whether its captures came from the base cache, and the key. */
+  cache?: { hit: boolean; key: string };
+}
+
+/** The base cache this run used (worktree base only). */
+export interface BaseCacheInfo {
+  key: string;
+  hit: boolean;
+  /** Written by this run (a miss whose captures all succeeded). */
+  stored?: boolean;
+  /** When the reused captures were taken (hits). */
+  capturedAt?: string;
+  configHash: string;
+  browser: string;
+  uiDiffVersion: string;
+}
+
+export interface CaptureFingerprint {
+  base?: SideFingerprint;
+  head?: SideFingerprint;
+  /** Everything except the commit that differs between base and head, one line each. */
+  differences: string[];
 }
 
 export interface ShiftedRun {
@@ -86,6 +139,38 @@ export interface A11yReport {
   errors: string[];
 }
 
+/** How a side got its dependencies: symlinked or hard-link copy of yours, its own install, the other side's install, or none needed. */
+export type InstallKind = 'linked' | 'copied' | 'installed' | 'shared' | 'none';
+
+/** Measured durations of one side's preparation (milliseconds). */
+export interface SideTiming {
+  mode: 'worktree' | 'url';
+  /** Captures restored from the base cache: no checkout, install, build, boot or capture. */
+  cached?: boolean;
+  /** Worktree checkout and copied files. */
+  checkoutMs?: number;
+  install?: { kind: InstallKind; ms: number; retried?: boolean };
+  buildMs?: number;
+  /** From starting the server until it answered. */
+  bootMs?: number;
+  totalMs: number;
+}
+
+/** Measured wall-clock durations of a run (milliseconds); nothing here is estimated. */
+export interface Timings {
+  /** From the start of the run until the report was assembled. */
+  totalMs: number;
+  detectMs: number;
+  /** Base and head are prepared at the same time; wallMs is how long that took. */
+  prepare?: { wallMs: number; base: SideTiming; head: SideTiming };
+  /** Making sure Chromium is installed (a download on the first run) and launching it. */
+  browserMs?: number;
+  capture?: { ms: number; count: number; slowest?: { id: string; side: 'base' | 'head'; ms: number } };
+  diffMs?: number;
+  /** a11y includes the axe runs and elementMapMs the element maps, both taken during capture. */
+  extras?: { variantsMs?: number; motionMs?: number; a11yMs?: number; tokensMs?: number; elementMapMs?: number; styleDiffMs?: number };
+}
+
 export interface SideSummary {
   label: string;
   mode: 'worktree' | 'url';
@@ -96,14 +181,38 @@ export interface SideSummary {
   includesUncommitted?: boolean;
 }
 
+/** Version of report.json this ui-diff writes. 1 and 2 are still read, see `parseReport`. */
+export const REPORT_VERSION = 3;
+
+/** Measured element-level changes of one capture (report version 3). */
+export interface CaptureStyleDiff {
+  /** Pairs found between the base and head element maps, by confidence. */
+  matched: { high: number; medium: number; low: number };
+  /** Changed, added and removed elements, biggest first (at most styleDiff.maxChanges). */
+  changes: ElementChange[];
+  /** Changes left out by styleDiff.maxChanges. */
+  omitted?: number;
+  /** One per diff region, same order. */
+  regions: RegionExplanation[];
+}
+
 export interface Report {
-  version: 1;
+  version: typeof REPORT_VERSION;
   tool: { name: 'ui-diff'; version: string };
   createdAt: string;
   base: SideSummary;
   head: SideSummary;
   routes: Array<{ path: string; name: string; reasons: string[]; confidence: string }>;
-  detect?: { uiFiles: string[]; unmatched: string[]; skippedRoutes: string[]; needsExample: Array<{ file: string; route: string }>; notes: string[] };
+  detect?: {
+    uiFiles: string[];
+    unmatched: string[];
+    skippedRoutes: string[];
+    needsExample: Array<{ file: string; route: string }>;
+    notes: string[];
+    /** Changed dependencies; `ui` ones made routes affected, the others were not checked visually. */
+    dependencies?: DependencyChange[];
+    unparsedLockfiles?: string[];
+  };
   viewports: string[];
   themes: string[];
   captures: CaptureResult[];
@@ -111,10 +220,101 @@ export interface Report {
   motion: MotionResult[];
   /** Routes whose motion clip was skipped because no capture of them changed (use --motion-all to record anyway). */
   motionSkipped?: string[];
+  /** Changed routes whose changed files touch no animation (transitions, keyframes, :hover...), so no clip was recorded. */
+  motionNoAnimation?: string[];
   tokens?: TokenReport;
   a11y?: A11yReport;
+  /** Set when nothing was captured: why (see `notCheckedReason`). */
+  notChecked?: string;
+  baseCache?: BaseCacheInfo;
+  /** Focus and ignore selectors used by any captured route. */
+  regions?: { focus: string[]; ignore: string[] };
+  /** Set when base and head were captured differently on some capture: what differed, and where. */
+  notComparable?: Array<{ key: string; captures: string[] }>;
+  /**
+   * Every verified measured change grouped by route, element, property and old → new value, as the
+   * comment lists them: kind cause or unexplained for the rows that count, effect (with the id of
+   * the cause's row) for what followed from one; each group keeps the captures it was seen on.
+   */
+  measured?: Array<Omit<MeasuredRow, 'effects'> & { route: string }>;
+  timings?: Timings;
   warnings: string[];
   stats: { captures: number; changed: number; unchanged: number; added: number; removed: number; errors: number };
+}
+
+/**
+ * Reads a report.json written by this or an earlier ui-diff (CI artifacts and kept reports outlive
+ * upgrades). Version 2 lacks only version 3's optional `styleDiff`; version 1 also lacks version 2's
+ * optional additions (`notChecked`, `diff.focusBoxes`), and `notChecked` is derived from the report.
+ */
+export function parseReport(raw: unknown, file: string): Report {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new UiDiffError(`${file} is not a ui-diff report`, { hint: 'Run `ui-diff run` to write a new one.' });
+  const version = (raw as { version?: unknown }).version;
+  if (version === REPORT_VERSION) return raw as Report;
+  // Version 2 differs only by what 3 added (styleDiff), which is optional.
+  if (version === 2) return { ...(raw as Omit<Report, 'version'>), version: REPORT_VERSION } as Report;
+  if (version === 1) {
+    const report = { ...(raw as Omit<Report, 'version'>), version: REPORT_VERSION } as Report;
+    const notChecked = notCheckedReason(report);
+    if (notChecked && report.notChecked === undefined) report.notChecked = notChecked;
+    return report;
+  }
+  const newer = typeof version === 'number' && version > REPORT_VERSION;
+  throw new UiDiffError(`${file} has report version ${String(version)}, which ui-diff ${VERSION} cannot read`, {
+    hint: newer ? 'It was written by a newer ui-diff: update this one, or rerun `ui-diff run`.' : 'Rerun `ui-diff run` to write a new report.',
+  });
+}
+
+function listOrNone(values: string[]): string {
+  return values.length ? values.join(', ') : 'none';
+}
+
+/**
+ * Differences between the two sides' capture environments, ignoring the commit (which is
+ * supposed to differ). Anything listed here can change pixels without a code change.
+ */
+export function fingerprintDifferences(base: SideFingerprint, head: SideFingerprint): string[] {
+  const fields: Array<[string, (f: SideFingerprint) => string]> = [
+    ['viewport', (f) => `${f.viewport.width}×${f.viewport.height}`],
+    ['devicePixelRatio', (f) => String(f.viewport.deviceScaleFactor)],
+    ['isMobile', (f) => String(f.viewport.isMobile)],
+    ['browser', (f) => `${f.browser.name} ${f.browser.version}`],
+    ['user agent', (f) => f.browser.userAgent],
+    ['fonts loaded', (f) => listOrNone(f.fonts.loaded)],
+    ['fonts failed', (f) => listOrNone(f.fonts.failed)],
+    ['fonts still loading', (f) => listOrNone(f.fonts.pending)],
+    ['clock', (f) => f.freeze.clock ?? 'running'],
+    ['random seed', (f) => (f.freeze.seed === null ? 'not seeded' : String(f.freeze.seed))],
+    ['animations', (f) => (f.freeze.animations ? 'off' : 'on')],
+    ['font wait', (f) => (f.freeze.fonts ? 'on' : 'off')],
+    ['reduced motion', (f) => f.media.reducedMotion],
+    ['color scheme', (f) => f.media.colorScheme],
+    ['locale', (f) => f.media.locale],
+    ['timezone', (f) => f.media.timezone],
+    ['test data', (f) => f.data],
+  ];
+  const out: string[] = [];
+  for (const [label, value] of fields) {
+    const [b, h] = [value(base), value(head)];
+    if (b !== h) out.push(`${label}: base ${b} · head ${h}`);
+  }
+  return out;
+}
+
+/**
+ * Fingerprint keys (fonts, browser, viewport, seed, clock...) that differed between base and head,
+ * with the captures they differed on. A run with any is not a clean comparison.
+ */
+export function comparability(captures: CaptureResult[]): Pick<Report, 'notComparable'> {
+  const byKey = new Map<string, string[]>();
+  for (const c of captures) {
+    for (const d of c.fingerprint?.differences ?? []) {
+      const key = d.slice(0, d.indexOf(':'));
+      const where = `${c.route.path} ${c.viewport}/${c.theme}`;
+      byKey.set(key, [...new Set([...(byKey.get(key) ?? []), where])]);
+    }
+  }
+  return byKey.size ? { notComparable: [...byKey].map(([key, where]) => ({ key, captures: where })) } : {};
 }
 
 export function computeStats(captures: CaptureResult[]): Report['stats'] {
@@ -179,13 +379,53 @@ export function truncationWarning(captures: CaptureResult[], maxHeight: number):
   return `${cut.length} capture${cut.length === 1 ? ' was' : 's were'} cut at capture.maxHeight (${maxHeight}px): ${names}${more}. Changes below that line are not compared; raise capture.maxHeight to include them.`;
 }
 
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
+/** Why nothing was captured, when nothing was. Phrased so an empty run never reads as "no visual changes". */
+export function notCheckedReason(report: Report): string | undefined {
+  if (report.captures.length > 0) return undefined;
+  const d = report.detect;
+  if (!d) return 'no route was selected';
+  if (d.uiFiles.length === 0) return 'no changed file is a UI file (detect.include), so no route was captured';
+  const why: string[] = [];
+  if (d.unmatched.length) why.push(`${plural(d.unmatched.length, 'file')} could not be traced to a page (pass --routes, or map them with routes[].files)`);
+  if (d.needsExample.length) why.push(`dynamic routes need an example path: ${[...new Set(d.needsExample.map((n) => n.route))].join(', ')}`);
+  return `${plural(d.uiFiles.length, 'UI file')} changed but none could be mapped to a route${why.length ? `: ${why.join('; ')}` : ''}`;
+}
+
+/** Detection ran and found no changed UI file, so there is nothing to show reviewers. */
+export function noUiChange(report: Report): boolean {
+  return report.captures.length === 0 && report.detect !== undefined && report.detect.uiFiles.length === 0;
+}
+
+export function notCheckedNotice(reason: string): string {
+  return `**Nothing was checked.** ${reason[0].toUpperCase()}${reason.slice(1)}. This is not a visual all-clear.`;
+}
+
+/** " Measured: link 'Get started' padding 8px 14px → 10px 18px (+2 more)." for the automatic summary. */
+function measuredSummary(items: CaptureResult[]): string {
+  const withDiff = items.filter((c) => c.styleDiff);
+  if (withDiff.length === 0) return '';
+  const all = withDiff.flatMap((c) => c.styleDiff!.changes.filter((x) => x.verified !== false)).sort((a, b) => b.magnitude - a.magnitude);
+  if (all.length === 0) return ' No measured style, text or size change.';
+  const top = all[0];
+  const what = top.kind === 'changed' ? top.changes.map((p) => (p.property === 'position' ? p.after : `${p.property} ${p.before} → ${p.after}`)).join(', ') : top.kind;
+  const others = new Set(all.slice(1).filter((c) => c.selector !== top.selector).map((c) => c.selector)).size;
+  return ` Measured: ${top.name} ${what}${others ? ` (+${others} more element${others === 1 ? '' : 's'})` : ''}.`;
+}
+
 /** Data-driven summary used when no agent/human summary is supplied. */
 export function autoSummary(report: Report): string {
   const lines: string[] = [];
   const s = report.stats;
   const changed = report.captures.filter((c) => c.status === 'changed' || c.status === 'added' || c.status === 'removed');
-  if (s.captures === 0) {
-    lines.push('No routes were captured.');
+  const notChecked = notCheckedReason(report);
+  if (notChecked) {
+    lines.push(notCheckedNotice(notChecked));
+  } else if (changed.length === 0 && s.errors === 0 && report.notComparable) {
+    lines.push(`No visual changes found across ${s.captures} capture${s.captures === 1 ? '' : 's'}, but base and head were captured differently (${report.notComparable.map((n) => n.key).join(', ')}), so this is not a clean result.`);
   } else if (changed.length === 0 && s.errors === 0) {
     lines.push(`No visual changes across ${s.captures} capture${s.captures === 1 ? '' : 's'} (${report.routes.length} route${report.routes.length === 1 ? '' : 's'}).`);
   } else {
@@ -194,10 +434,15 @@ export function autoSummary(report: Report): string {
     for (const [route, items] of byRoute) {
       const worst = items.reduce((a, b) => ((b.diff?.ratio ?? 0) > (a.diff?.ratio ?? 0) ? b : a));
       const where = items.map((i) => `${i.viewport}${report.themes.length > 1 ? `/${i.theme}` : ''}`).join(', ');
-      lines.push(`- \`${route}\` changed on ${where}; largest: ${describeCapture(worst)}.`);
+      lines.push(`- \`${route}\` changed on ${where}; largest: ${describeCapture(worst)}.${measuredSummary(items)}`);
     }
   }
   if (s.errors) lines.push(`- ${s.errors} capture${s.errors === 1 ? '' : 's'} failed — see the details below.`);
+  const env = changed.filter((c) => c.fingerprint?.differences.length);
+  if (env.length) {
+    const where = env.map((c) => `\`${c.route.path}\` ${c.viewport}${report.themes.length > 1 ? `/${c.theme}` : ''}`).join(', ');
+    lines.push(`- ⚠️ Capture environment differed on ${where} (${[...new Set(env.flatMap((c) => c.fingerprint!.differences.map((d) => d.split(':')[0])))].join(', ')}): those diffs may not come from the code.`);
+  }
   if (report.a11y) {
     const { added, fixed } = report.a11y;
     if (added.length || fixed.length) {
@@ -225,7 +470,13 @@ export function autoSummary(report: Report): string {
   if (report.motion.length) lines.push(`- ${report.motion.length} motion clip${report.motion.length === 1 ? '' : 's'} recorded for interactions static screenshots miss.`);
   const still = report.motion.filter((m) => m.warnings?.some((w) => w.startsWith('no motion detected')));
   if (still.length) lines.push(`- No motion detected in ${still.map((m) => `\`${m.route.path}\``).join(', ')} (single-frame clip).`);
+  if (report.motionNoAnimation?.length) lines.push(`- Motion not recorded for ${report.motionNoAnimation.map((r) => `\`${r}\``).join(', ')}: their changed files touch no transition, animation or interaction state.`);
   if (report.motionSkipped?.length) lines.push(`- Motion not recorded for unchanged routes: ${report.motionSkipped.map((r) => `\`${r}\``).join(', ')}.`);
+  const deps = report.detect?.dependencies ?? [];
+  const uiDeps = deps.filter((d) => d.ui);
+  const otherDeps = deps.filter((d) => !d.ui);
+  if (uiDeps.length) lines.push(`- UI dependencies changed (${uiDeps.slice(0, 3).map(describeDependency).join(', ')}${uiDeps.length > 3 ? ', …' : ''}), so their routes were captured.`);
+  if (otherDeps.length) lines.push(`- ${otherDeps.length} dependency change${otherDeps.length === 1 ? '' : 's'} not checked visually (${otherDeps.slice(0, 3).map(describeDependency).join(', ')}${otherDeps.length > 3 ? ', …' : ''}).`);
   if (report.detect?.skippedRoutes.length) lines.push(`- Not captured (over the route limit): ${report.detect.skippedRoutes.map((r) => `\`${r}\``).join(', ')}.`);
   if (report.detect?.needsExample.length) lines.push(`- Not captured (dynamic routes need example values): ${report.detect.needsExample.map((n) => `\`${n.route}\``).join(', ')}.`);
   return lines.join('\n');

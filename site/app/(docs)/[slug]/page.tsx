@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommandBox } from "@/components/copy";
@@ -87,7 +88,64 @@ export default async function SkillPage({ params }: PageProps<"/[slug]">) {
       {/* Body and the 260px rail, side by side from 1280px. */}
       <div className="mt-16 xl:mt-20 xl:grid xl:grid-cols-[minmax(0,1fr)_260px] xl:gap-16">
         <div>
-          <H2 id="what-it-does" className="mt-0">
+          {skill.release && (
+            <>
+              <H2 id="whats-new" className="mt-0">
+                What’s new in {skill.release.version}
+              </H2>
+              <DashList items={skill.release.items} />
+            </>
+          )}
+
+          {skill.example && (
+            <>
+              <H2 id="example">Example</H2>
+              <P>
+                <Inline text={skill.example.intro} />
+              </P>
+              <div className="my-4 rounded-xl bg-stage p-4 shadow-well">
+                <pre className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+                  <code>
+                    {skill.example.output.split("\n").map((line, n) => {
+                      // A wrapped list item lines up under its own text, past the indent and the "- ".
+                      const hang = /^\s*(?:- )?/.exec(line)![0].length;
+                      return (
+                        <span key={n} className="block" style={{ paddingLeft: `${hang}ch`, textIndent: `-${hang}ch` }}>
+                          {line || " "}
+                        </span>
+                      );
+                    })}
+                  </code>
+                </pre>
+              </div>
+              {skill.example.image && (
+                <figure className="my-4">
+                  <div className="relative isolate overflow-hidden rounded-xl bg-stage">
+                    <Image
+                      src={skill.example.image.src}
+                      width={skill.example.image.width}
+                      height={skill.example.image.height}
+                      alt={skill.example.image.alt}
+                      sizes="(min-width: 1280px) 660px, (min-width: 768px) calc(100vw - 96px), calc(100vw - 32px)"
+                      className="h-auto w-full"
+                    />
+                    <div className="pointer-events-none absolute inset-0 rounded-xl shadow-well" />
+                  </div>
+                  <figcaption className="mt-2 px-1 text-meta text-pretty text-fg-3">
+                    <Inline text={skill.example.image.caption} />
+                  </figcaption>
+                </figure>
+              )}
+              <div className="px-1 text-meta text-fg-3">
+                <a href={skill.example.source.href} className={`${META_LINK} inline-flex items-center gap-0.5`}>
+                  {skill.example.source.label}
+                  <ExternalIcon />
+                </a>
+              </div>
+            </>
+          )}
+
+          <H2 id="what-it-does" className={skill.release || skill.example ? undefined : "mt-0"}>
             What it does
           </H2>
           <DashList items={skill.whatItDoes} />

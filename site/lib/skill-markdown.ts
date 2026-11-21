@@ -29,6 +29,24 @@ export function skillMarkdown(s: Skill) {
     `- Source: ${s.source.href}`,
     `- Updated: ${s.updated}`,
     "",
+    ...(s.release
+      ? [`## What’s new in ${s.release.version}`, "", ...s.release.items.map((line) => `- ${line}`), ""]
+      : []),
+    ...(s.example
+      ? [
+          "## Example",
+          "",
+          s.example.intro,
+          "",
+          "```md",
+          s.example.output,
+          "```",
+          "",
+          ...(s.example.image ? [`![${s.example.image.alt}](${SITE.url}${s.example.image.src})`, "", s.example.image.caption, ""] : []),
+          `Source: ${s.example.source.href}`,
+          "",
+        ]
+      : []),
     "## What it does",
     "",
     ...s.whatItDoes.map((line) => `- ${line}`),

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
+import { DEFAULT_UI_PACKAGES } from './deps.js';
 import { UiDiffError } from './log.js';
 import { realpathIfExists } from './paths.js';
 
@@ -76,6 +77,8 @@ const RouteObjectSchema = z
     themes: z.array(z.string()).optional(),
     variants: VariantSchema.optional(),
     motion: z.union([z.boolean(), RouteMotionSchema]).optional(),
+    focus: z.array(z.string()).optional().describe('Added to the top-level focus for this route'),
+    ignore: z.array(z.string()).optional().describe('Added to the top-level ignore for this route'),
   })
   .strict();
 
@@ -83,13 +86,13 @@ const CaptureSchema = z
   .object({
     fullPage: z.boolean().default(true),
     maxHeight: z.number().int().min(200).max(16000).default(4000),
-    disableAnimations: z.boolean().default(true),
-    waitForFonts: z.boolean().default(true),
+    disableAnimations: z.boolean().default(true).describe('Older switch: false turns off freeze.animations'),
+    waitForFonts: z.boolean().default(true).describe('Older switch: false turns off freeze.fonts'),
     fixedTime: z
       .union([z.string(), z.literal(false)])
       .default(false)
-      .describe('Freeze Date: an ISO timestamp, "run-start" (same instant on both sides) or false'),
-    stableRandom: z.boolean().default(true).describe('Seed Math.random so random content renders the same on both sides'),
+      .describe('Older form of freeze.time: an ISO timestamp or "run-start" sets it; false leaves freeze.time in charge'),
+    stableRandom: z.boolean().default(true).describe('Older switch: false turns off freeze.random'),
     mask: z.array(z.string()).default([]),
     maskColor: z.string().default('#A3A3A3'),
     hide: z.array(z.string()).default([]),
@@ -102,6 +105,28 @@ const CaptureSchema = z
     networkIdleTimeoutMs: z.number().int().min(0).default(3000),
     locale: z.string().default('en-US'),
     timezoneId: z.string().default('UTC'),
+    styleMaxElements: z
+      .number()
+      .int()
+      .min(10)
+      .default(2500)
+      .describe('Most visible elements whose computed styles are recorded per capture (token audit); a warning says when a page has more'),
+  })
+  .strict();
+
+const FreezeSchema = z
+  .object({
+    clock: z.boolean().default(true).describe('Freeze Date at `time` with the Playwright clock on both sides (timers keep running), so clocks and "2 min ago" match'),
+    time: z
+      .string()
+      .default('run-start')
+      .refine((t) => t === 'run-start' || !Number.isNaN(new Date(t).getTime()), 'must be "run-start" or an ISO timestamp')
+      .describe('"run-start" (the same instant on both sides) or an ISO timestamp'),
+    random: z.boolean().default(true).describe('Seed Math.random and crypto.getRandomValues / randomUUID'),
+    seed: z.number().int().default(0x2f6b3a1d).describe('Seed for the random generators'),
+    animations: z.boolean().default(true).describe('Finish CSS animations and transitions, hide the caret and set prefers-reduced-motion for still captures'),
+    fonts: z.boolean().default(true).describe('Wait until no web font is loading (document.fonts) before capturing'),
+    fontTimeoutMs: z.number().int().min(0).max(30000).default(8000).describe('Longest wait for fonts'),
   })
   .strict();
 
@@ -153,6 +178,7 @@ const MotionSchema = z
     theme: z.string().optional(),
     scale: z.number().min(0.2).max(1).default(0.6),
     steps: z.array(StepSchema).default([]),
+    parallel: z.boolean().default(true).describe('Record base and head at the same time (each in its own page); false records them one after the other'),
   })
   .strict();
 
@@ -186,7 +212,7 @@ const TokensSchema = z
       .default({})
       .describe('Map token names to categories when their names do not say it, e.g. { "spacing": ["--s-*"], "font-size": ["--fs-*"] }'),
     ignoreSelectors: z.array(z.string()).default([]),
-    maxElements: z.number().int().min(10).default(2500),
+    maxElements: z.number().int().min(10).optional().describe('Deprecated: use capture.styleMaxElements (still honoured when that is not set)'),
     maxFindings: z.number().int().min(1).default(40),
   })
   .strict();
@@ -228,6 +254,14 @@ const DetectSchema = z
     imports: z.boolean().default(true),
     aliases: z.record(z.string(), z.string()).default({}),
     maxRoutes: z.number().int().min(1).default(12),
+    uiPackages: z
+      .array(z.string())
+      .default(DEFAULT_UI_PACKAGES)
+      .describe('Package names (* wildcards) whose version changes may change the UI; replaces the default list, so keep the entries you still want'),
+    dependencyRoutes: z
+      .array(z.string().startsWith('/'))
+      .optional()
+      .describe('Routes captured when a UI package changes; default: every known route'),
     include: z
       .array(z.string())
       .default([
@@ -269,6 +303,8 @@ export const ConfigSchema = z
     copyFiles: z.array(z.string()).default(['.env', '.env.local', '.env.development.local']),
     routes: z.array(z.union([z.string().startsWith('/'), RouteObjectSchema])).default([]),
     globalFiles: z.array(z.string()).default([]).describe('Globs whose changes affect every route'),
+    focus: z.array(z.string()).default([]).describe('CSS selectors of the only areas to compare (pixels and styles); the rest of the page is not diffed'),
+    ignore: z.array(z.string()).default([]).describe('CSS selectors of areas not to compare: painted over in the screenshots and left out of the style diff'),
     detect: DetectSchema.prefault({}),
     viewports: z
       .array(ViewportSchema)
@@ -278,7 +314,35 @@ export const ConfigSchema = z
         { name: 'mobile', width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
       ]),
     themes: z.array(ThemeSchema).min(1).default([{ name: 'light', colorScheme: 'light' }]),
+    browser: z
+      .object({
+        channel: z
+          .string()
+          .optional()
+          .describe('Installed browser to capture with instead of Playwright\'s Chromium, e.g. "chrome" (UI_DIFF_BROWSER_CHANNEL overrides it)'),
+      })
+      .strict()
+      .prefault({}),
     capture: CaptureSchema.prefault({}),
+    freeze: FreezeSchema.prefault({}).describe('Inputs frozen before every still capture, the same on both sides'),
+    styleDiff: z
+      .object({
+        enabled: z.boolean().default(true).describe('Record the element map of every capture and describe changes as measured style changes'),
+        maxChanges: z.number().int().min(1).default(50).describe('Most element changes kept per capture in report.json'),
+        minConfidence: z.enum(['high', 'medium', 'low']).default('medium').describe('Changes of elements matched with less confidence are listed as unverified'),
+      })
+      .strict()
+      .prefault({}),
+    fingerprint: z
+      .object({
+        dataLabel: z
+          .string()
+          .max(200)
+          .optional()
+          .describe('What test data the app ran with (a fixture name, seed or dataset version), shown in the capture settings; "not declared" when unset'),
+      })
+      .strict()
+      .prefault({}),
     diff: DiffSchema.prefault({}),
     preview: z
       .object({ base: z.string().optional(), head: z.string().optional() })
@@ -322,6 +386,9 @@ export interface ResolvedRoute {
   themes?: string[];
   variants?: VariantSpec;
   motion?: RouteMotionConfig;
+  /** Route-level additions to the top-level focus and ignore. */
+  focus: string[];
+  ignore: string[];
   configured: boolean;
 }
 
@@ -412,6 +479,8 @@ export function resolveRoute(input: string | z.infer<typeof RouteObjectSchema>, 
         }
       : undefined,
     motion,
+    focus: route.focus ?? [],
+    ignore: route.ignore ?? [],
     configured,
   };
 }
@@ -428,6 +497,21 @@ export function toSlashes(p: string): string {
   return p.replace(/\\/g, '/');
 }
 
+/**
+ * The capture.* switches that predate `freeze` keep working: turning one off turns the matching
+ * freeze off, and a capture.fixedTime timestamp sets freeze.time unless freeze.time is given.
+ * `capture.fixedTime: false` (what `init` wrote) now means "not set", so the clock is frozen at run
+ * start unless freeze.clock is false.
+ */
+function applyLegacyFreeze(parsed: RawConfig, explicitTime: boolean): void {
+  const { capture, freeze } = parsed;
+  if (capture.fixedTime !== false && !explicitTime) freeze.time = capture.fixedTime;
+  if (!capture.stableRandom) freeze.random = false;
+  if (!capture.disableAnimations) freeze.animations = false;
+  if (!capture.waitForFonts) freeze.fonts = false;
+  if (freeze.time !== 'run-start' && Number.isNaN(new Date(freeze.time).getTime())) throw new UiDiffError(`capture.fixedTime is not a valid date: ${freeze.time}`);
+}
+
 export function parseConfig(raw: unknown, opts: { file?: string; repoRoot: string }): ResolvedConfig {
   const result = ConfigSchema.safeParse(raw);
   const label = opts.file ? path.relative(process.cwd(), opts.file) || opts.file : 'config';
@@ -435,6 +519,9 @@ export function parseConfig(raw: unknown, opts: { file?: string; repoRoot: strin
     throw new UiDiffError(`Invalid configuration:\n${formatZodError(result.error, label)}`);
   }
   const parsed = result.data;
+  const explicitCap = (raw as { capture?: { styleMaxElements?: unknown } } | null)?.capture?.styleMaxElements !== undefined;
+  if (!explicitCap && parsed.tokens.maxElements !== undefined) parsed.capture.styleMaxElements = parsed.tokens.maxElements;
+  applyLegacyFreeze(parsed, (raw as { freeze?: { time?: unknown } } | null)?.freeze?.time !== undefined);
   parsed.cwd = toSlashes(parsed.cwd);
   parsed.copyFiles = parsed.copyFiles.map(toSlashes);
   parsed.tokens.files = parsed.tokens.files.map(toSlashes);

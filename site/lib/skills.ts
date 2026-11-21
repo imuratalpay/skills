@@ -1,6 +1,6 @@
 /**
  * Every skill page renders from this file. Text in backticks renders as inline code.
- * Sources: ui-diff's README.md and SKILL.md, skills/type-taste/SKILL.md, ghost-cursor's skills/ghost-record/SKILL.md.
+ * Sources: ui-diff's README.md, SKILL.md, docs/release/v2.0.0.md and docs/example/comment.md, skills/type-taste/SKILL.md, ghost-cursor's skills/ghost-record/SKILL.md.
  */
 
 export type PhaseId = "before" | "after" | "diff";
@@ -27,6 +27,15 @@ export type Skill = {
   source: { label: string; href: string };
   whatItDoes: string[];
   whenToUse: string[];
+  /** What the latest major version added, shown above "What it does". */
+  release?: { version: string; items: string[] };
+  /** Real output from the skill, trimmed. `output` is shown as written; `image` is a file in `public/`. */
+  example?: {
+    intro: string;
+    output: string;
+    image?: { src: string; width: number; height: number; alt: string; caption: string };
+    source: { label: string; href: string };
+  };
   playground: {
     title: string;
     /** A real prompt for this skill, shown above the stage. */
@@ -43,49 +52,90 @@ export const SKILLS: Skill[] = [
     slug: "ui-diff",
     title: "UI diff",
     summary:
-      "Run it on a pull request that changes UI and it posts one comment with before, after and highlighted-diff screenshots. Reviewers see the change before they approve it.",
-    short: "Before, after and diff screenshots of a UI pull request, in one sticky PR comment.",
+      "On every pull request it compares the UI against its base and posts one comment saying what changed visually.",
+    short: "Measured before and after of a UI pull request, in one sticky PR comment.",
     pitch:
-      "Screenshots every route a pull request touches at **base and head**, diffs them and posts **one sticky PR comment** with the images and a short UX summary. Only people who can read the repo can see the images.",
+      "Compares every route a pull request touches at **base and head**, names the style changes it measured and posts **one sticky PR comment** that starts with the verdict. Only people who can read the repo can see the images.",
     install: {
       commands: ["npx skills add imuratalpay/skills"],
       note: "Installs every skill here, for Claude Code, Cursor, Codex and more. ui-diff needs git and Node.js 20.10+, and the GitHub CLI only to post. For the standalone CLI, clone `imuratalpay/ui-diff` and run `./install.sh`.",
+      link: { label: "imuratalpay/ui-diff on GitHub", href: "https://github.com/imuratalpay/ui-diff" },
     },
     invoke: "/ui-diff",
     invocation: "auto",
-    updated: "2026-11-19",
+    updated: "2026-11-22",
     source: { label: "imuratalpay/ui-diff", href: "https://github.com/imuratalpay/ui-diff" },
+    release: {
+      version: "2.0",
+      items: [
+        "A verdict first, like `3 measured changes on 2 routes`. It counts causes only. Side effects such as a new size, a move or a wrapped neighbour sit under the change that caused them.",
+        "Style diffs that name the change, like `padding 8px 14px → 10px 18px`, with the viewports and themes it was seen on. With `--tokens`, a value that matches no design token gets the nearest one, and a color only when one is close.",
+        "A still before and after pair for every changed area, with the change outlined. The blink and the highlighted diff fold below it.",
+        "Quiet on pushes that change no UI file: nothing is posted, and an earlier comment only gets a one-line note. Base captures are cached, so a rerun against the same base only captures head.",
+        "`ui-diff check` runs the same compare on your working tree and posts nothing. `focus` and `ignore` take CSS selectors to limit what gets compared.",
+      ],
+    },
+    example: {
+      intro:
+        "The repo’s verified example: one page committed at `6737326` and `cc13cab`. The primary button got more padding and rounder corners, the gap beside it grew by 1px and the email label turned blue. This is the top of the comment ui-diff wrote for it, trimmed.",
+      output: [
+        "### UI diff — 5 measured changes on 1 route",
+        "",
+        "**Base** `6737326` → **Head** `cc13cab` · 1 route · desktop, mobile · light, dark",
+        "",
+        "#### Measured changes",
+        "",
+        "**`/`**",
+        "",
+        "- `label 'Work email'` (`label`): color #0f172a → #2563eb — desktop, mobile · light",
+        "- `label 'Work email'` (`label`): color #f8fafc → #2563eb — desktop, mobile · dark",
+        "- `link 'Start free trial'` (`a.cta`): padding 8px 14px → 10px 18px — desktop, mobile · light, dark",
+        "  - size 134.5×40px → 142.5×44px (from the padding change)",
+        "  <details><summary>10 effects on other elements</summary>",
+        "  …",
+        "- `link 'Start free trial'` (`a.cta`): border-radius 4px → 8px — desktop, mobile · light, dark",
+        "- `div.hero-actions`: gap 16px → 17px — desktop, mobile · light, dark",
+      ].join("\n"),
+      image: {
+        src: "/ui-diff/compare/home__mobile__light__pair-1.png",
+        width: 1620,
+        height: 545,
+        alt: "Before and after of the mobile page, side by side: the Start free trial button is a few pixels larger with rounder corners, and the link beside it sits further right. The changed row is outlined in pink.",
+        caption:
+          "The still pair for `/` on mobile, light, and the line ui-diff puts under it: link 'Start free trial': padding 8px 14px → 10px 18px · border-radius 4px → 8px",
+      },
+      source: { label: "docs/example/comment.md", href: "https://github.com/imuratalpay/ui-diff/blob/v2.0.0/docs/example/comment.md" },
+    },
     whatItDoes: [
       "Works out which routes your changed files affect, using `ui-diff.config.json`, the framework’s routing and the import graph.",
-      "Runs the PR’s base and head in temporary git worktrees and captures each route with Playwright. It seeds randomness and waits for fonts and animations first, so the same page gives the same pixels.",
-      "Diffs the screenshots with pixelmatch and builds `before | after | diff` images, plus zoomed crops of the largest changed areas.",
-      "Writes a short UX summary for a designer or PM and shows it to you before it posts anything.",
+      "Runs the PR’s base and head in temporary git worktrees, or uses preview URLs, and captures each route with Playwright. Clock, randomness, animations and fonts are frozen on both sides, so the same page gives the same pixels.",
+      "Matches base and head elements, measures their style changes and checks each one against the changed pixels. A change that fails the check is listed as unverified, never dropped.",
       "Creates or updates one sticky PR comment. The images go to an orphan branch of the same repository, so only people who can read the repo can see them.",
     ],
     whenToUse: [
-      "When a pull request changes components, styles or pages and reviewers would otherwise approve it from the code. You can run it on your branch before you open the PR. Nothing gets posted until you publish.",
+      "When a pull request changes components, styles or pages and reviewers would otherwise approve it from the code. Run `ui-diff check` on your branch first. Nothing gets posted until you publish.",
       "It also puts design variants side by side (`?hero=1..4`), records hover and transition clips, reports new accessibility issues, and flags colors and spacing that match no design token.",
     ],
     playground: {
-      title: "One landing page from the ui-diff repo’s verified example, at commits `6737326` and `09cdd81`.",
+      title: "The full-page image from the 2.0 comment for the repo’s verified example, at commits `6737326` and `cc13cab`.",
       prompt: "Run the ui-diff skill on PR #123 and update the sticky PR comment.",
       phases: [
         {
           id: "before",
           label: "Before",
-          caption: "Base `6737326`. A blue button and a one-line headline.",
+          caption: "Base `6737326`. The Start free trial button at 8px 14px padding, with 4px corners.",
           duration: 2600,
         },
         {
           id: "after",
           label: "After",
-          caption: "Head `09cdd81`. The headline wraps to two lines and the button is a violet pill.",
+          caption: "Head `cc13cab`. Padding 10px 18px, 8px corners, and the Work email label in blue.",
           duration: 3400,
         },
         {
           id: "diff",
           label: "Diff",
-          caption: "4.96% of pixels changed, in 18 areas. Each one gets a box.",
+          caption: "0.34% of pixels changed, in 2 areas. The 4px shift below the button is aligned out.",
           duration: 3400,
         },
       ],
@@ -100,7 +150,7 @@ export const SKILLS: Skill[] = [
       { slug: "type-taste", why: "Fix the type before review." },
       { slug: "ghost-record", why: "Demo the finished component." },
     ],
-    keywords: ["pull request", "pr", "screenshot", "visual diff", "review", "playwright", "accessibility", "variants"],
+    keywords: ["pull request", "pr", "screenshot", "visual diff", "review", "playwright", "accessibility", "variants", "verdict", "style diff", "design tokens", "check"],
   },
   {
     slug: "type-taste",

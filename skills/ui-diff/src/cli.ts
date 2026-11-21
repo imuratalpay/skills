@@ -3,17 +3,21 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { chromium } from 'playwright';
+import { resolveBrowser } from './capture.js';
+import { CHECK_EXIT, checkSummary } from './check.js';
+import { openOutputs } from './open.js';
 import { CONFIG_FILENAME, loadConfig, type ResolvedConfig } from './config.js';
 import { inferFromPath } from './conventions.js';
 import { detectChanges, detectSummary } from './detect.js';
 import { exec } from './exec.js';
 import { git, repoRoot } from './git.js';
-import { createGhClient, findStickyComment, getPullRequest, prState, repoVisibility, uploadGuard, upsertStickyComment } from './github.js';
+import { createGhClient, findStickyComment, getPullRequest, prState, publishDecision, repoVisibility, uploadGuard, upsertStickyComment } from './github.js';
+import type { RemoteInfo } from './git.js';
 import { configureLog, log, notesAfter, redact, UiDiffError, writeRedacted } from './log.js';
-import { referencedImages, renderComment } from './markdown.js';
-import { lastRunFailure, runPipeline } from './pipeline.js';
+import { noUiChangeComment, referencedImages, renderComment, timingLine } from './markdown.js';
+import { baseCacheKeyFor, lastRunFailure, runPipeline } from './pipeline.js';
 import { encodePath, linkBaseFor, listAssetPrs, publishToBranch, pruneBranch, resolveRemote } from './publish.js';
-import type { Report } from './report.js';
+import { noUiChange, parseReport, type Report } from './report.js';
 import { killAllServers } from './server.js';
 import { detectTokenFiles } from './tokens.js';
 import { VERSION } from './version.js';
@@ -27,6 +31,9 @@ Commands
   doctor      Check git, gh, Playwright and the config
   detect      List changed UI files and the routes they affect
   run         Capture base and head, diff them and write .ui-diff/report.json
+  check       Diff your working tree against the merge base locally; prints a summary, posts nothing
+              (exit 0: no visual changes, 1: changes, 2: errors)
+  cache-key   Print the base cache key a run would use (for actions/cache)
   render      Render the PR comment locally (with your summary) without uploading anything
   publish     Upload images to the private assets branch and create/update the sticky PR comment
   prune       Remove images of closed (or given) PRs from the assets branch
@@ -47,12 +54,19 @@ detect / run
   --viewports <list>     e.g. desktop,mobile or tablet:820x1180@2
   --themes <list>        e.g. light,dark
   --variants <spec>      Variant compare, e.g. hero=1..4 or /pricing:plan=a,b (repeatable)
-  --motion               Record before/after motion clips (routes with visual changes only)
+  --motion               Record before/after motion clips (routes whose changed files touch motion)
   --motion-all           Record motion clips for every route, changed or not
   --tokens <files>       Design-token audit against JSON, CSS or StyleX (*.stylex.ts) token files
                          (comma-separated; "auto" finds them)
   --a11y                 Accessibility delta: new and fixed axe issues, focus order
   --keep-worktrees       Keep the temporary worktrees for inspection
+  --no-cache             Capture base again instead of reusing it from the base cache (.ui-diff/cache)
+
+check (also takes the run options except --pr, --head and the preview URLs)
+  --base <ref>           Compare with this ref (default: the merge base with the default branch)
+  --out <dir>            Output directory (default: <repo>/.ui-diff/out)
+  --json                 Print the summary as JSON instead of text
+  --open                 Open the images folder and report.json with the default app
 
 render
   --summary <file>       UX summary markdown (default: .ui-diff/summary.md when present)
@@ -80,7 +94,8 @@ prune
 
 type Values = Record<string, string | boolean | string[] | undefined>;
 
-function parse(argv: string[]): { command: string; values: Values } {
+/** Parses the arguments; throws on an unknown option, so docs can be checked against it. */
+export function parse(argv: string[]): { command: string; values: Values } {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -110,6 +125,9 @@ function parse(argv: string[]): { command: string; values: Values } {
       'dry-run': { type: 'boolean' },
       'no-upload': { type: 'boolean' },
       'no-comment': { type: 'boolean' },
+      'no-cache': { type: 'boolean' },
+      json: { type: 'boolean' },
+      open: { type: 'boolean' },
       'allow-public-repo': { type: 'boolean' },
       'assume-private': { type: 'boolean' },
       remote: { type: 'string' },
@@ -156,6 +174,60 @@ async function prRefs(values: Values, root: string): Promise<{ base?: string; he
   return { base: (values.base as string | undefined) ?? `origin/${pr.baseRefName}`, head: (values.head as string | undefined) ?? pr.headRefOid, pr: pr.number };
 }
 
+/**
+ * The working tree (uncommitted changes included) against the merge base, captured and diffed like
+ * a PR run, with a terminal summary. Never posts or pushes. Exit 0, 1 or 2 (see CHECK_EXIT).
+ */
+async function cmdCheck(values: Values): Promise<number> {
+  for (const flag of ['pr', 'head', 'base-url', 'head-url'] as const) {
+    if (values[flag]) throw new UiDiffError(`check compares your working tree, so --${flag} does not apply`, { hint: 'Use `ui-diff run` to compare commits, a PR or deployed previews.', exitCode: CHECK_EXIT.error });
+  }
+  const root = await repoRoot(process.cwd());
+  const cfg = loadConfig(root, process.cwd(), values.config as string | undefined);
+  const outDir = path.resolve(process.cwd(), (values.out as string | undefined) ?? path.join(root, '.ui-diff', 'out'));
+  const outcome = await runPipeline({
+    cfg,
+    outDir,
+    base: values.base as string | undefined,
+    routes: list(values.routes),
+    allRoutes: Boolean(values['all-routes']),
+    viewports: list(values.viewports),
+    themes: list(values.themes),
+    variants: values.variants as string[] | undefined,
+    motion: Boolean(values.motion) || Boolean(values['motion-all']),
+    motionAll: Boolean(values['motion-all']),
+    tokens: list(values.tokens),
+    a11y: Boolean(values.a11y),
+    keepWorktrees: Boolean(values['keep-worktrees']),
+    cache: !values['no-cache'],
+  });
+  const summary = checkSummary(outcome.report, outDir);
+  const opened = values.open ? openCheckOutput(outDir) : undefined;
+  if (values.json) print({ verdict: summary.verdict, exitCode: summary.exitCode, report: path.relative(process.cwd(), outcome.reportFile), stats: outcome.report.stats, timing: outcome.report.timings ? timingLine(outcome.report.timings) : undefined, ...(opened ? { opened } : {}) });
+  else process.stdout.write(summary.text);
+  return summary.exitCode;
+}
+
+/** `check --open`: the images folder and report.json, with the default app; says what it opened. */
+function openCheckOutput(outDir: string): string[] {
+  const where = path.relative(process.cwd(), outDir) || '.';
+  const result = openOutputs(outDir);
+  if (!result.opener) {
+    log.info(`nothing to open in ${where}: no images in compare/ and no report.json`);
+    return [];
+  }
+  if (result.opened.length) log.info(`opened ${result.opened.join(' and ')} with ${result.opener}`);
+  for (const f of result.failed) log.warn(`could not open ${f}`);
+  return result.opened;
+}
+
+async function cmdCacheKey(values: Values): Promise<void> {
+  const { root, cfg, outDir } = await context(values);
+  const refs = await prRefs(values, root);
+  const key = await baseCacheKeyFor({ cfg, outDir, base: refs.base, head: refs.head, baseUrl: values['base-url'] as string | undefined, headUrl: values['head-url'] as string | undefined, routes: list(values.routes), allRoutes: Boolean(values['all-routes']), viewports: list(values.viewports), themes: list(values.themes), tokens: list(values.tokens), a11y: Boolean(values.a11y) });
+  print(key ? { ...key, cacheDir: path.relative(process.cwd(), path.join(root, '.ui-diff', 'cache')) || '.' } : { key: null, reason: 'the base cache does not apply: nothing to capture, or base is a deployed preview' });
+}
+
 async function cmdDetect(values: Values): Promise<void> {
   const { root, cfg } = await context(values);
   const refs = await prRefs(values, root);
@@ -183,10 +255,13 @@ async function cmdRun(values: Values): Promise<void> {
     tokens: list(values.tokens),
     a11y: Boolean(values.a11y),
     keepWorktrees: Boolean(values['keep-worktrees']),
+    cache: !values['no-cache'],
   });
   const r = outcome.report;
   print({
-    status: outcome.noChanges ? 'no-ui-changes' : 'ok',
+    // "no-ui-changes" only when no UI file changed; UI files that map to no route are "nothing-mapped".
+    status: !outcome.noChanges ? 'ok' : r.detect?.uiFiles.length ? 'nothing-mapped' : 'no-ui-changes',
+    notChecked: r.notChecked,
     report: path.relative(process.cwd(), outcome.reportFile),
     preview: path.relative(process.cwd(), outcome.previewFile),
     summaryTemplate: path.relative(process.cwd(), path.join(outDir, 'summary.auto.md')),
@@ -195,13 +270,17 @@ async function cmdRun(values: Values): Promise<void> {
     stats: r.stats,
     changed: r.captures
       .filter((c) => c.status !== 'unchanged')
-      .map((c) => ({ id: c.id, status: c.status, ratio: c.diff?.ratio, images: [...c.images.focus, c.images.compare ?? c.images.head].filter(Boolean), error: c.error })),
+      .map((c) => ({ id: c.id, status: c.status, ratio: c.diff?.ratio, styleChanges: c.styleDiff?.changes.length, images: [...c.images.focus, c.images.compare ?? c.images.head].filter(Boolean), error: c.error })),
     variants: r.variants.map((v) => ({ id: v.id, images: v.items.map((i) => i.image ?? i.error) })),
     motion: r.motion.map((m) => ({ id: m.id, gif: m.gif, webm: m.webm, frames: m.frames, warnings: m.warnings, error: m.error })),
     motionSkipped: r.motionSkipped,
+    motionNoAnimation: r.motionNoAnimation,
     a11y: r.a11y ? { new: r.a11y.added.length, fixed: r.a11y.fixed.length, focusChanges: r.a11y.focus.filter((f) => f.delta.changed).length } : undefined,
     tokens: r.tokens ? { new: r.tokens.findings.filter((f) => f.isNew).length, existing: r.tokens.findings.filter((f) => !f.isNew).length, notAudited: r.tokens.skipped } : undefined,
+    timing: r.timings ? timingLine(r.timings) : undefined,
+    baseCache: r.baseCache,
     warnings: r.warnings,
+    captureWarnings: r.captures.filter((c) => c.warnings.length).map((c) => ({ id: c.id, warnings: c.warnings })),
     notCaptured: [...(r.detect?.skippedRoutes ?? []), ...(r.detect?.needsExample.map((n) => n.route) ?? [])],
     unmatchedFiles: r.detect?.unmatched ?? [],
   });
@@ -221,12 +300,18 @@ async function currentPr(root: string): Promise<number> {
 function loadReport(outDir: string, summaryOption: unknown): { report: Report; summary?: string } {
   const reportFile = path.join(outDir, 'report.json');
   if (!existsSync(reportFile)) throw new UiDiffError(`No report at ${reportFile}`, { hint: 'Run `ui-diff run` first.' });
-  const report = JSON.parse(readFileSync(reportFile, 'utf8')) as Report;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(reportFile, 'utf8'));
+  } catch (error) {
+    throw new UiDiffError(`Could not parse ${reportFile}: ${(error as Error).message}`, { hint: 'Rerun `ui-diff run`.' });
+  }
+  const report = parseReport(raw, reportFile);
   const failure = lastRunFailure(outDir);
   if (failure) log.warn(`the last run failed (${failure.failedAt}: ${failure.error.split('\n')[0]}); this report is from an earlier run (${report.createdAt}). Rerun \`ui-diff run\` before publishing.`);
   const summaryFile = (summaryOption as string | undefined) ?? (existsSync(path.join(outDir, 'summary.md')) ? path.join(outDir, 'summary.md') : undefined);
   if (!summaryFile) {
-    log.info('no summary.md found; using the automatic summary');
+    log.info('no summary.md found, so the comment has no written summary: it starts with the verdict and the measured changes');
     return { report };
   }
   if (!existsSync(summaryFile)) throw new UiDiffError(`Summary file not found: ${summaryFile}`);
@@ -266,6 +351,10 @@ async function cmdPublish(values: Values): Promise<void> {
   const branch = (values.branch as string | undefined) ?? cfg.publish.branch;
   const { info } = await resolveRemote(root, remoteName);
   const prNumber = values.pr ? Number(values.pr) : dryRun ? undefined : await currentPr(root);
+  if (noUiChange(report)) {
+    await publishNoUiChange(report, { values, cfg, outDir, info, prNumber, dryRun });
+    return;
+  }
   const groupDir = `pr-${prNumber ?? 'local'}/${cfg.comment.id}`;
   const runDir = `${groupDir}/${runStamp(report)}-${report.head.shortSha ?? 'preview'}`;
   const linkOverride = (values['link-base'] as string | undefined) ?? cfg.publish.linkBase;
@@ -334,6 +423,37 @@ async function cmdPublish(values: Values): Promise<void> {
   const { action, comment } = await upsertStickyComment(client, { repo: repoSlug!, pr: prNumber!, body, existing });
   log.info(`comment ${action}${comment.url ? `: ${comment.url}` : ''}`);
   print({ action, url: comment.url, pushed, images: uploads.length, branch: upload ? branch : undefined, runDir: upload ? runDir : undefined });
+}
+
+/** No changed UI file: never create a comment; reduce an existing one to a one-line note. Nothing is uploaded. */
+async function publishNoUiChange(
+  report: Report,
+  ctx: { values: Values; cfg: ResolvedConfig; outDir: string; info?: RemoteInfo; prNumber?: number; dryRun: boolean },
+): Promise<void> {
+  const { values, cfg, outDir, info, prNumber } = ctx;
+  const commentFile = path.join(outDir, 'comment.md');
+  const rule = 'no UI files changed: no comment is created, and an existing ui-diff comment is reduced to a one-line note';
+  if (ctx.dryRun || values['no-comment']) {
+    writeRedacted(commentFile, noUiChangeComment(report, cfg.comment));
+    log.info(rule);
+    print({ dryRun: ctx.dryRun, pr: prNumber ?? null, noUiChange: true, publishable: true, problems: [], wouldUpload: [], comment: path.relative(process.cwd(), commentFile), posted: false, note: rule });
+    return;
+  }
+  const repoSlug = (values.repo as string | undefined) ?? (info ? `${info.owner}/${info.repo}` : undefined);
+  if (!repoSlug) throw new UiDiffError('Cannot tell which repository the PR belongs to', { hint: 'Pass --repo owner/name.' });
+  const client = createGhClient(info?.host);
+  const existing = await findStickyComment(client, repoSlug, prNumber!, cfg.comment.id);
+  const decision = publishDecision(report, existing, cfg.comment);
+  if (decision.action === 'skip') {
+    log.info(`not commenting: ${decision.reason}`);
+    print({ action: 'skipped', reason: decision.reason, noUiChange: true, pushed: false, images: 0 });
+    return;
+  }
+  if (decision.action !== 'note') return;
+  writeRedacted(commentFile, decision.body);
+  const { action, comment } = await upsertStickyComment(client, { repo: repoSlug, pr: prNumber!, body: decision.body, existing });
+  log.info(`comment ${action} (no UI files changed)${comment.url ? `: ${comment.url}` : ''}`);
+  print({ action, url: comment.url, noUiChange: true, pushed: false, images: 0 });
 }
 
 async function cmdPrune(values: Values): Promise<void> {
@@ -442,7 +562,7 @@ async function cmdInit(values: Values): Promise<void> {
       { name: 'mobile', width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
     ],
     themes: [{ name: 'light', colorScheme: 'light' }],
-    capture: { mask: [], fixedTime: false },
+    capture: { mask: [] },
     a11y: { enabled: true },
   };
   if (config.routes.length === 0) config.routes = ['/'];
@@ -474,6 +594,7 @@ async function cmdDoctor(values: Values): Promise<void> {
   const [major, minor] = process.versions.node.split('.').map(Number);
   add('node', major > 20 || (major === 20 && minor >= 10), process.versions.node);
   let root: string | undefined;
+  let configChannel: string | undefined;
   try {
     root = await repoRoot(process.cwd());
     add('git repository', true, root);
@@ -483,6 +604,7 @@ async function cmdDoctor(values: Values): Promise<void> {
   if (root) {
     try {
       const cfg = loadConfig(root, process.cwd(), values.config as string | undefined);
+      configChannel = cfg.browser.channel;
       add('config', true, cfg.file ? `${path.relative(root, cfg.file)}: ${cfg.routes.length} route(s), ${cfg.viewports.length} viewport(s), ${cfg.themes.length} theme(s)` : 'none found (defaults; run `ui-diff init`)');
       add('start command', Boolean(cfg.startCommand || (cfg.preview.base && cfg.preview.head)), cfg.startCommand ?? (cfg.preview.base ? 'preview URLs' : 'missing: set startCommand or preview URLs'));
       const { url, info } = await resolveRemote(root, cfg.publish.remote);
@@ -508,12 +630,19 @@ async function cmdDoctor(values: Values): Promise<void> {
       add('config', false, (error as Error).message);
     }
   }
-  const browser = process.env.UI_DIFF_BROWSER_CHANNEL || process.env.UI_DIFF_CHROMIUM_PATH;
+  const choice = resolveBrowser(configChannel);
+  const custom = choice.executablePath ? `custom: ${choice.executablePath}` : choice.channel ? `channel: ${choice.channel} (installed browser, nothing to download)` : undefined;
   const installed = existsSync(chromium.executablePath());
-  add('browser', Boolean(browser) || installed, browser ? `custom: ${browser}` : installed ? chromium.executablePath() : 'Playwright Chromium not installed yet (downloaded automatically on the first run)', !browser);
+  add('browser', Boolean(custom) || installed, custom ?? (installed ? chromium.executablePath() : 'Playwright Chromium not installed yet (downloaded automatically on the first run)'), !custom);
   for (const c of checks) log.info(doctorLine(c));
   print({ ok: doctorOk(checks), checks });
 }
+
+function commands(): Record<(typeof COMMANDS)[number], (v: Values) => Promise<void | number>> {
+  return { init: cmdInit, doctor: cmdDoctor, detect: cmdDetect, 'cache-key': cmdCacheKey, run: cmdRun, check: cmdCheck, render: cmdRender, publish: cmdPublish, prune: cmdPrune };
+}
+
+export const COMMANDS = ['init', 'doctor', 'detect', 'cache-key', 'run', 'check', 'render', 'publish', 'prune'] as const;
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
   let command = 'help';
@@ -529,11 +658,10 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       process.stdout.write(`${VERSION}\n`);
       return 0;
     }
-    const commands: Record<string, (v: Values) => Promise<void>> = { init: cmdInit, doctor: cmdDoctor, detect: cmdDetect, run: cmdRun, render: cmdRender, publish: cmdPublish, prune: cmdPrune };
-    const fn = commands[command];
+    const fn = (commands() as Record<string, ((v: Values) => Promise<void | number>) | undefined>)[command];
     if (!fn) throw new UiDiffError(`Unknown command "${command}"`, { hint: 'Run `ui-diff help`.' });
-    await fn(parsed.values);
-    return 0;
+    const code = await fn(parsed.values);
+    return typeof code === 'number' ? code : 0;
   } catch (error) {
     killAllServers();
     if (error instanceof UiDiffError) {
@@ -543,6 +671,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       log.error(redact((error as Error).stack ?? String(error)));
     }
     for (const note of notesAfter(error)) log.warn(note);
+    // check promises 0/1 for its verdict, so every failure is 2.
+    if (command === 'check') return CHECK_EXIT.error;
     return error instanceof UiDiffError ? error.exitCode : 1;
   }
 }

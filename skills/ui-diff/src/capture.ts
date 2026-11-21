@@ -5,13 +5,14 @@ import { chromium, devices, type Browser, type BrowserContext, type BrowserConte
 import { collectFocusOrder, runAxe, type AxeViolation, type FocusStop } from './a11y.js';
 import { applyAuth, type ResolvedAuth } from './auth.js';
 import type { ResolvedConfig, ResolvedRoute, ThemeConfig, ViewportConfig } from './config.js';
-import { DEV_OVERLAY_SELECTORS, freezeAnimations, hideCss, initScript, pageHeight, scrollThrough, waitForFontsAndImages } from './determinism.js';
+import { DEV_OVERLAY_SELECTORS, fontState, freezeAnimations, hideCss, initScript, pageHeight, scrollThrough, settleFonts, waitForFontsAndImages, type FontState } from './determinism.js';
 import { exec } from './exec.js';
 import type { Box } from './image.js';
 import { log, redact, UiDiffError } from './log.js';
+import type { SideFingerprint } from './report.js';
 import type { SideName } from './sides.js';
 import { runSteps } from './steps.js';
-import type { StyleSnapshot } from './tokens.js';
+import { collectStyles } from './styles.js';
 import { changedRegions, type UnsettledRegion } from './unsettled.js';
 
 export interface CaptureTarget {
@@ -46,8 +47,27 @@ export interface CaptureRecord {
   /** The page clock was paused for the final screenshots because something kept moving. */
   frozeTimers?: boolean;
   stylesFile?: string;
+  /** The style snapshot (element map) hit capture.styleMaxElements. */
+  stylesCapped?: boolean;
+  /** Elements in the element map. */
+  stylesCount?: number;
+  /** How many elements each focus and ignore selector matched on this page. */
+  regionHits?: { focus: Record<string, number>; ignore: Record<string, number> };
+  /** Device-px boxes of the elements matching a focus selector. */
+  focusBoxes?: Box[];
+  /** Time spent on the style snapshot and on axe plus focus order, within durationMs. */
+  stylesMs?: number;
+  a11yMs?: number;
   axe?: AxeViolation[];
   focusOrder?: FocusStop[];
+  /** Route actions skipped because no element matched them on this side. */
+  skippedActions?: string[];
+  /** Web fonts loaded, failed or still loading when the screenshot was taken. */
+  fonts?: FontState;
+  /** Capture environment measured in the page (the fingerprint without commit and data label). */
+  environment?: Omit<SideFingerprint, 'commit' | 'data'>;
+  /** `window.devicePixelRatio` measured in the page: device pixels per CSS pixel in the screenshot. */
+  scale?: number;
   durationMs: number;
 }
 
@@ -121,6 +141,9 @@ async function describeRegions(page: Page, boxes: Box[], fullPage: boolean): Pro
     });
 }
 
+/** How long a route action waits for its element to appear before it is skipped as missing on that side. */
+const MISSING_ACTION_WAIT_MS = 3000;
+
 const MOBILE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
@@ -146,7 +169,7 @@ export function contextOptions(viewport: ViewportConfig, theme: ThemeConfig | un
     hasTouch: viewport.hasTouch ?? device?.hasTouch ?? false,
     userAgent: viewport.userAgent ?? device?.userAgent ?? (isMobile ? MOBILE_UA : undefined),
     colorScheme: theme?.colorScheme ?? 'light',
-    reducedMotion: motion || !cfg.capture.disableAnimations ? 'no-preference' : 'reduce',
+    reducedMotion: motion || !cfg.freeze.animations ? 'no-preference' : 'reduce',
     locale: cfg.capture.locale,
     timezoneId: cfg.capture.timezoneId,
     serviceWorkers: 'block',
@@ -160,9 +183,28 @@ const require = createRequire(import.meta.url);
 const BROWSER_HINT =
   'Run `npx --prefix <skill folder> playwright install chromium` once you are online (behind a proxy set HTTPS_PROXY, or PLAYWRIGHT_DOWNLOAD_HOST for a mirror), or use an installed Chrome with UI_DIFF_BROWSER_CHANNEL=chrome.';
 
-/** Installs Playwright's Chromium on first use unless a system browser channel is configured. */
-export async function ensureBrowser(): Promise<void> {
-  if (process.env.UI_DIFF_BROWSER_CHANNEL || process.env.UI_DIFF_CHROMIUM_PATH) return;
+/** Which browser captures run in: a browser channel (an installed Chrome), a custom executable, or Playwright's Chromium. */
+export interface BrowserChoice {
+  channel?: string;
+  executablePath?: string;
+  /** Recorded in the fingerprint: the channel name, "chromium" (bundled) or "custom executable" (the path is never recorded). */
+  label: string;
+}
+
+/**
+ * UI_DIFF_CHROMIUM_PATH wins, then UI_DIFF_BROWSER_CHANNEL, then config browser.channel, then the
+ * Chromium Playwright downloads. Resolved once per run, so base and head always share the browser.
+ */
+export function resolveBrowser(configChannel?: string, env: NodeJS.ProcessEnv = process.env): BrowserChoice {
+  if (env.UI_DIFF_CHROMIUM_PATH) return { executablePath: env.UI_DIFF_CHROMIUM_PATH, label: 'custom executable' };
+  const channel = env.UI_DIFF_BROWSER_CHANNEL || configChannel;
+  if (channel) return { channel, label: channel };
+  return { label: 'chromium' };
+}
+
+/** Installs Playwright's Chromium on first use unless an installed browser was chosen. */
+export async function ensureBrowser(choice: BrowserChoice = resolveBrowser()): Promise<void> {
+  if (choice.channel || choice.executablePath) return;
   if (existsSync(chromium.executablePath())) return;
   log.step('installing Playwright Chromium (first run only)');
   const cli = path.join(path.dirname(require.resolve('playwright/package.json')), 'cli.js');
@@ -174,19 +216,21 @@ export async function ensureBrowser(): Promise<void> {
   }
 }
 
-export async function launchBrowser(): Promise<Browser> {
-  await ensureBrowser();
+export async function launchBrowser(choice: BrowserChoice = resolveBrowser()): Promise<Browser> {
+  await ensureBrowser(choice);
   try {
     return await chromium.launch({
       headless: true,
-      channel: process.env.UI_DIFF_BROWSER_CHANNEL || undefined,
-      executablePath: process.env.UI_DIFF_CHROMIUM_PATH || undefined,
+      channel: choice.channel,
+      executablePath: choice.executablePath,
       args: ['--font-render-hinting=none', '--disable-lcd-text', '--force-color-profile=srgb', '--hide-scrollbars', '--disable-skia-runtime-opts'],
     });
   } catch (error) {
     const lines = (error as Error).message.split('\n').filter((l) => l.trim() && !/^\s*at /.test(l));
-    throw new UiDiffError(`Could not start Chromium: ${lines.slice(0, 6).join(' ').replace(/\s+/g, ' ').slice(0, 600)}`, {
-      hint: 'On Linux install the system libraries with `npx --prefix <skill folder> playwright install --with-deps chromium`, or set UI_DIFF_BROWSER_CHANNEL=chrome to use an installed Chrome.',
+    throw new UiDiffError(`Could not start ${choice.label === 'chromium' ? 'Chromium' : choice.label}: ${lines.slice(0, 6).join(' ').replace(/\s+/g, ' ').slice(0, 600)}`, {
+      hint: choice.channel
+        ? `Install that browser (channel "${choice.channel}"), or unset UI_DIFF_BROWSER_CHANNEL / browser.channel to use Playwright's Chromium.`
+        : 'On Linux install the system libraries with `npx --prefix <skill folder> playwright install --with-deps chromium`, or set UI_DIFF_BROWSER_CHANNEL=chrome to use an installed Chrome.',
     });
   }
 }
@@ -194,8 +238,16 @@ export async function launchBrowser(): Promise<Browser> {
 export interface SessionOptions {
   cfg: ResolvedConfig;
   auth?: ResolvedAuth;
-  /** Instant used when capture.fixedTime is "run-start". */
+  /** Instant used when freeze.time is "run-start". */
   runStart: Date;
+  /** Fingerprint name of the browser (BrowserChoice.label); defaults to "chromium". */
+  browserLabel?: string;
+}
+
+/** The instant Date is frozen at for still captures, or undefined when freeze.clock is off. */
+export function frozenTime(cfg: ResolvedConfig, runStart: Date): Date | undefined {
+  if (!cfg.freeze.clock) return undefined;
+  return cfg.freeze.time === 'run-start' ? runStart : new Date(cfg.freeze.time);
 }
 
 export class CaptureSession {
@@ -208,23 +260,53 @@ export class CaptureSession {
     const { cfg } = this.opts;
     // Motion clips always run with prefers-reduced-motion: no-preference; static captures may stay reduced.
     const context = await this.browser.newContext({ ...contextOptions(viewport, theme, cfg, motion), ...extra, ...(motion ? { reducedMotion: 'no-preference' as const } : {}) });
-    const fixed = cfg.capture.fixedTime;
-    if (fixed && !motion) {
-      const instant = fixed === 'run-start' ? this.opts.runStart : new Date(fixed);
-      if (Number.isNaN(instant.getTime())) throw new UiDiffError(`capture.fixedTime is not a valid date: ${fixed}`);
+    const instant = frozenTime(cfg, this.opts.runStart);
+    if (instant && !motion) {
       await context.clock.setFixedTime(instant);
     } else if (!motion) {
       // Time keeps flowing; installed up front so timers can be paused later without performance.now() jumping.
       await context.clock.install();
     }
-    await context.addInitScript({ content: initScript({ stableRandom: cfg.capture.stableRandom, localStorage: theme?.localStorage }) });
+    await context.addInitScript({ content: initScript({ seed: cfg.freeze.random ? cfg.freeze.seed : undefined, localStorage: theme?.localStorage }) });
     await applyAuth(context, this.opts.auth);
     context.setDefaultTimeout(cfg.capture.timeoutMs);
     return context;
   }
 
-  /** Navigates and brings the page to a settled, deterministic state. */
-  async openAndSettle(page: Page, url: string, route: ResolvedRoute, opts: { freeze: boolean; fullPage: boolean }): Promise<number | undefined> {
+  /** Measured in the page where it can be: what this capture was rendered with. */
+  private async environment(page: Page, target: CaptureTarget, fonts: FontState): Promise<Omit<SideFingerprint, 'commit' | 'data'>> {
+    const { cfg } = this.opts;
+    const measured = await page.evaluate(() => ({
+      width: window.innerWidth,
+      height: window.innerHeight,
+      deviceScaleFactor: window.devicePixelRatio,
+      userAgent: navigator.userAgent,
+      locale: navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduce' : 'no-preference',
+      colorScheme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'no-preference',
+    }));
+    const clock = frozenTime(cfg, this.opts.runStart);
+    return {
+      viewport: { width: measured.width, height: measured.height, deviceScaleFactor: measured.deviceScaleFactor, isMobile: contextOptions(target.viewport, target.theme, cfg).isMobile ?? false },
+      browser: { name: this.opts.browserLabel ?? 'chromium', version: this.browser.version(), userAgent: measured.userAgent },
+      fonts,
+      freeze: { clock: clock ? clock.toISOString() : null, seed: cfg.freeze.random ? cfg.freeze.seed : null, animations: cfg.freeze.animations, fonts: cfg.freeze.fonts },
+      media: { reducedMotion: measured.reducedMotion, colorScheme: measured.colorScheme, locale: measured.locale, timezone: measured.timezone },
+    };
+  }
+
+  private async waitForFonts(page: Page, timeoutMs: number): Promise<void> {
+    await settleFonts(page, timeoutMs);
+    await waitForFontsAndImages(page, timeoutMs);
+  }
+
+  /**
+   * Navigates and brings the page to a settled, deterministic state: network idle, fonts, lazy
+   * content loaded by scrolling through the page, and only then the route's actions, so they can
+   * target lazy-loaded elements and an opened menu or hover is not undone by that scroll.
+   */
+  async openAndSettle(page: Page, url: string, route: ResolvedRoute, opts: { freeze: boolean; fullPage: boolean }): Promise<{ status?: number; skippedActions: string[] }> {
     const { cfg } = this.opts;
     const response = await page.goto(url, { waitUntil: cfg.capture.waitUntil, timeout: cfg.capture.timeoutMs });
     if (cfg.capture.networkIdleTimeoutMs > 0) {
@@ -232,16 +314,21 @@ export class CaptureSession {
     }
     if (route.waitFor) await page.locator(route.waitFor).first().waitFor({ state: 'visible', timeout: cfg.capture.timeoutMs });
     if (opts.freeze) await freezeAnimations(page);
-    if (cfg.capture.waitForFonts) await waitForFontsAndImages(page, 8000);
-    if (route.actions.length) await runSteps(page, route.actions, cfg.capture.timeoutMs);
+    if (cfg.freeze.fonts) await this.waitForFonts(page, cfg.freeze.fontTimeoutMs);
     if (opts.fullPage && cfg.capture.scrollToLoad) {
       await scrollThrough(page, cfg.capture.maxHeight);
-      if (cfg.capture.waitForFonts) await waitForFontsAndImages(page, 5000);
+      if (cfg.freeze.fonts) await this.waitForFonts(page, Math.min(5000, cfg.freeze.fontTimeoutMs));
+    }
+    let skippedActions: string[] = [];
+    if (route.actions.length) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      // An element that exists on only one side (new on head, removed on base) skips the action there with a warning.
+      skippedActions = await runSteps(page, route.actions, { timeoutMs: cfg.capture.timeoutMs, skipMissing: true, waitForMissingMs: Math.min(cfg.capture.timeoutMs, MISSING_ACTION_WAIT_MS) });
     }
     if (opts.freeze) await freezeAnimations(page);
     if (!route.actions.some((a) => 'scroll' in a)) await page.evaluate(() => window.scrollTo(0, 0));
     if (cfg.capture.settleMs) await page.waitForTimeout(cfg.capture.settleMs);
-    return response?.status();
+    return { status: response?.status(), skippedActions };
   }
 
   async screenshot(
@@ -250,7 +337,7 @@ export class CaptureSession {
     fullPage: boolean,
   ): Promise<{ buffer: Buffer; stable: boolean; attempts: number; truncated: boolean; unsettled?: UnsettledRegion[]; frozeTimers: boolean }> {
     const { cfg } = this.opts;
-    const masks = [...cfg.capture.mask, ...route.mask];
+    const masks = [...cfg.capture.mask, ...route.mask, ...cfg.ignore, ...route.ignore];
     const hidden = [...cfg.capture.hide, ...route.hide, ...(cfg.capture.hideDevOverlays ? DEV_OVERLAY_SELECTORS : [])];
     const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
     let truncated = false;
@@ -266,7 +353,7 @@ export class CaptureSession {
       page.screenshot({
         fullPage,
         clip,
-        animations: cfg.capture.disableAnimations ? 'disabled' : 'allow',
+        animations: cfg.freeze.animations ? 'disabled' : 'allow',
         caret: 'hide',
         scale: 'device',
         mask: masks.map((s) => page.locator(s)),
@@ -303,7 +390,7 @@ export class CaptureSession {
     }
     const stable = streak >= wanted;
     const unsettled = changes >= 2 || !stable ? await describeRegions(page, moving, fullPage) : undefined;
-    if (frozeTimers) await page.context().clock.resume().catch(() => undefined);
+    // The caller resumes the clock once the element map describes this same frame.
     return { buffer: previous, stable, attempts, truncated, unsettled, frozeTimers };
   }
 
@@ -322,7 +409,12 @@ export class CaptureSession {
       page.on('pageerror', (error) => {
         if (record.pageErrors.length < 10) record.pageErrors.push(redact(error.message).slice(0, 300));
       });
-      record.httpStatus = await this.openAndSettle(page, target.url, target.route, { freeze: cfg.capture.disableAnimations, fullPage });
+      const opened = await this.openAndSettle(page, target.url, target.route, { freeze: cfg.freeze.animations, fullPage });
+      record.httpStatus = opened.status;
+      if (opened.skippedActions.length) record.skippedActions = opened.skippedActions;
+      record.scale = await page.evaluate(() => window.devicePixelRatio);
+      record.fonts = await fontState(page);
+      record.environment = await this.environment(page, target, record.fonts);
       const shot = await this.screenshot(page, target.route, fullPage);
       mkdirSync(path.dirname(target.file), { recursive: true });
       writeFileSync(target.file, shot.buffer);
@@ -330,26 +422,27 @@ export class CaptureSession {
       if (shot.unsettled) record.unsettled = shot.unsettled;
       if (shot.frozeTimers) record.frozeTimers = true;
       if (target.styles) {
-        const snapshot = await page.evaluate(
-          ({ max, ignore, extra }) => {
-            const helpers = (window as unknown as { __uiDiff: { snapshotStyles(m: number, i: string[]): unknown[]; normalizeColors(l: string[]): Record<string, unknown> } }).__uiDiff;
-            const elements = helpers.snapshotStyles(max, ignore) as Array<{ styles: { color: string; backgroundColor: string; borderColor: string[] } }>;
-            const colors = new Set<string>(extra);
-            for (const el of elements) {
-              colors.add(el.styles.color);
-              colors.add(el.styles.backgroundColor);
-              for (const c of el.styles.borderColor) colors.add(c);
-            }
-            return { elements, colors: helpers.normalizeColors([...colors]) };
-          },
-          { max: cfg.tokens.maxElements, ignore: cfg.tokens.ignoreSelectors, extra: target.styles.extraColors },
-        );
+        const stylesStart = performance.now();
+        const ignored = [...cfg.ignore, ...target.route.ignore];
+        const focus = [...cfg.focus, ...target.route.focus];
+        const masked = [...ignored, ...cfg.capture.mask, ...target.route.mask, ...cfg.capture.hide, ...target.route.hide, ...(cfg.capture.hideDevOverlays ? DEV_OVERLAY_SELECTORS : [])];
+        const { snapshot, capped, hits } = await collectStyles(page, { maxElements: cfg.capture.styleMaxElements, ignore: cfg.tokens.ignoreSelectors, extraColors: target.styles.extraColors, masked, focus });
+        if (ignored.length || focus.length) {
+          record.regionHits = { focus: Object.fromEntries(focus.map((sel, i) => [sel, hits.focus[i]])), ignore: Object.fromEntries(ignored.map((sel, i) => [sel, hits.masked[i]])) };
+          record.focusBoxes = snapshot.elements.filter((e) => e.focus).map((e) => e.deviceBox!);
+        }
         mkdirSync(path.dirname(target.styles.file), { recursive: true });
-        writeFileSync(target.styles.file, JSON.stringify(snapshot as StyleSnapshot));
+        writeFileSync(target.styles.file, JSON.stringify(snapshot));
         record.stylesFile = target.styles.file;
+        if (capped) record.stylesCapped = true;
+        record.stylesCount = snapshot.elements.length;
+        record.stylesMs = Math.round(performance.now() - stylesStart);
       }
+      if (shot.frozeTimers) await page.context().clock.resume().catch(() => undefined);
+      const a11yStart = performance.now();
       if (target.a11y) record.axe = await runAxe(page, { tags: cfg.a11y.tags, rules: cfg.a11y.rules });
       if (target.focusOrder) record.focusOrder = await collectFocusOrder(page, cfg.a11y.maxTabStops);
+      if (target.a11y || target.focusOrder) record.a11yMs = Math.round(performance.now() - a11yStart);
       record.ok = true;
     } catch (error) {
       record.error = redact((error as Error).message.split('\n')[0]);

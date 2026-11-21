@@ -19,8 +19,10 @@ Symptoms seen when running ui-diff on real apps, and what to do. Logs are in `.u
 - Use `"baseUrl": "http://localhost:{port}"`. Next.js blocks its dev resources for `127.0.0.1`
   (`Blocked cross-origin request … from "127.0.0.1"` in the server log), so pages never hydrate:
   client components stay empty and `actions` / motion clicks do nothing.
-- Turbopack does not accept symlinked `node_modules`, so each worktree needs a real install; keep
-  the npm/pnpm cache warm in CI.
+- Turbopack does not accept symlinked `node_modules`, so worktrees get hard-linked copies of an
+  existing install instead: install your checkout's dependencies first (CI does) and a worktree
+  whose lockfile matches needs no install of its own. Hard links need the worktrees (system temp
+  directory) on the same file system as the checkout; otherwise the files are copied.
 
 ## "No UI changes" or files listed as `unmatched`
 
@@ -36,11 +38,13 @@ Symptoms seen when running ui-diff on real apps, and what to do. Logs are in `.u
 - **Carousels, tickers and other JavaScript animations** are not frozen by the CSS rules. Mask
   them (`capture.mask`), hide them (`capture.hide`), or have them respect
   `prefers-reduced-motion`, which ui-diff turns on.
-- **Live data** (timestamps, counters, "x minutes ago"): `capture.fixedTime` freezes `Date`;
-  otherwise mask the element and give it a stable size (`font-variant-numeric: tabular-nums`).
-- **Fonts loaded by a script after the page loads** (font loaders, `new FontFace(...)` in a timeout)
-  can be missed. Add a `waitFor` selector that appears once fonts are applied, or raise
-  `capture.settleMs`.
+- **Live data** (timestamps, counters, "x minutes ago"): `Date` is frozen by default (`freeze.clock`);
+  data that changes without the clock (a counter fetched from an API, a ticker) needs a `capture.mask`
+  with a stable size (`font-variant-numeric: tabular-nums`).
+- **Fonts that arrive late** (slow font files, `new FontFace(...)` in a timeout) are waited for
+  until none is loading, up to `freeze.fontTimeoutMs` (8 s). A font that never loads is listed as
+  failed or still loading in the capture settings; one requested later than that needs a `waitFor`
+  selector that appears once it is applied.
 - A warning "page did not settle" means consecutive screenshots of one side kept changing.
 
 ## Changes far down a page are missing

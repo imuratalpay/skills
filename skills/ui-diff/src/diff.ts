@@ -12,6 +12,8 @@ export interface DiffOptions {
   scale?: number;
   /** Align rows first so content that only moved vertically is not counted as changed (default true). */
   alignShifts?: boolean;
+  /** When set, only changes inside these boxes (device px) count; a size change alone does not. */
+  only?: Box[];
 }
 
 export interface DiffOutcome {
@@ -159,9 +161,24 @@ export function diffPngs(before: PNG, after: PNG, opts: DiffOptions): DiffOutcom
     changedPixels = pixelmatch(a.data, b.data, maskOut, width, height, pixelOpts);
     for (let i = 0; i < mask.length; i++) mask[i] = maskOut[i * 4 + 3] > 0 ? 1 : 0;
   }
+  let removedPixels = removedBoxes.length ? removedRows * width : 0;
+  if (opts.only) {
+    const allowed = new Uint8Array(width * height);
+    for (const box of opts.only) {
+      const b = clampBox(box, width, height);
+      for (let y = b.y; y < b.y + b.height; y++) allowed.fill(1, y * width + b.x, y * width + b.x + b.width);
+    }
+    changedPixels = 0;
+    for (let i = 0; i < mask.length; i++) {
+      mask[i] &= allowed[i];
+      changedPixels += mask[i];
+    }
+    const kept = removedBoxes.filter((r) => opts.only!.some((b) => intersects(r, b)));
+    if (kept.length < removedBoxes.length) removedPixels = 0;
+    removedBoxes.splice(0, removedBoxes.length, ...kept);
+  }
   const sizeChanged = before.width !== after.width || before.height !== after.height;
-  const removedPixels = removedBoxes.length ? removedRows * width : 0;
-  const changed = changedPixels + removedPixels >= Math.max(1, opts.minChangedPixels) || sizeChanged;
+  const changed = changedPixels + removedPixels >= Math.max(1, opts.minChangedPixels) || (sizeChanged && !opts.only);
   const regions = changed
     ? mergeBoxes([...findRegions(mask, width, height, Math.round(8 * scale), Math.round(24 * scale)), ...removedBoxes], Math.round(24 * scale)).sort((x, y) => area(y) - area(x))
     : [];
@@ -251,4 +268,65 @@ export function composeCompare(
     ],
     { maxWidth: opts.maxWidth },
   );
+}
+
+/** About the width a PR comment column shows an image at, in px. */
+const SHOWN_WIDTH = 900;
+
+/** The crop box narrowed to the focus elements it touches, so a crop never shows unfocused neighbours. */
+export function clipToFocus(box: Box, focus: Box[] | undefined): Box {
+  const touching = (focus ?? []).filter((f) => intersects(f, box));
+  if (touching.length === 0) return box;
+  const bounds = touching.reduce(unionBox);
+  const x = Math.max(box.x, bounds.x);
+  const y = Math.max(box.y, bounds.y);
+  const w = Math.min(box.x + box.width, bounds.x + bounds.width) - x;
+  const h = Math.min(box.y + box.height, bounds.y + bounds.height) - y;
+  return w > 0 && h > 0 ? { x, y, width: w, height: h } : box;
+}
+
+/** Base and head crops of one area, each with the changed regions inside it outlined. */
+function outlinedCrops(diff: DiffOutcome, box: Box, highlight: RGBA, scale: number, shrink = 1): [PNG, PNG] {
+  const stroke = Math.max(2, Math.round(2 * scale * shrink));
+  return [diff.paddedBefore, diff.paddedAfter].map((image) => {
+    const out = crop(image, box);
+    for (const region of diff.regions) {
+      if (!intersects(region, box)) continue;
+      strokeRect(out, clampBox({ x: region.x - box.x, y: region.y - box.y, width: region.width, height: region.height }, out.width, out.height), highlight, stroke);
+    }
+    return out;
+  }) as [PNG, PNG];
+}
+
+/**
+ * The still pair of a changed area: base | head side by side with the changed boxes outlined, for
+ * readers who cannot compare a blinking image.
+ */
+export function composePair(diff: DiffOutcome, box: Box, labels: { before: string; after: string }, opts: { highlight: string; scale: number; maxWidth?: number; upscaleBelow?: number }): PNG {
+  // Wide pairs are scaled down to fit maxWidth, and again to the width a PR comment shows them at;
+  // a thicker outline stays visible after that.
+  const shrink = Math.max(1, (2 * box.width) / Math.min(opts.maxWidth ?? Infinity, SHOWN_WIDTH));
+  let [before, after] = outlinedCrops(diff, box, parseHexColor(opts.highlight), opts.scale, shrink);
+  if (opts.upscaleBelow && before.width < opts.upscaleBelow) {
+    const target = Math.min(opts.upscaleBelow, before.width * 2);
+    before = resizeToWidth(before, target);
+    after = resizeToWidth(after, target);
+  }
+  return composeRow(
+    [
+      { image: before, label: labels.before, accent: COLORS.before },
+      { image: after, label: labels.after, accent: COLORS.after },
+    ],
+    { maxWidth: opts.maxWidth },
+  );
+}
+
+/** The two frames of a blink GIF of one area: base, then head, labelled, the same size. */
+export function blinkFrames(diff: DiffOutcome, box: Box, labels: { before: string; after: string }, opts: { highlight: string; scale: number; maxWidth: number }): [PNG, PNG] {
+  const [before, after] = outlinedCrops(diff, box, parseHexColor(opts.highlight), opts.scale, Math.max(1, box.width / Math.min(opts.maxWidth, SHOWN_WIDTH)));
+  const width = Math.min(before.width, opts.maxWidth);
+  return [
+    composeRow([{ image: resizeToWidth(before, width), label: labels.before, accent: COLORS.before }]),
+    composeRow([{ image: resizeToWidth(after, width), label: labels.after, accent: COLORS.after }]),
+  ];
 }
