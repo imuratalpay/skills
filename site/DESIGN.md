@@ -1,10 +1,10 @@
 # Design system: skills site
 
-A quiet docs site. Hierarchy comes from grey first, weight second, size last (type-taste). Surfaces are flat: a 1px ring carries every edge, and the light theme adds one soft shadow. Motion is short and only answers an input. Every value below is in `app/globals.css` or a component; if it isn't listed here, it doesn't exist. Add it to the token file first, then here.
+A quiet docs site. Hierarchy comes from grey first, weight second, size last (type-taste). The site is dark only. Surfaces are flat: a 1px ring carries every edge, and there are no shadows. Motion is short and only answers an input. Every value below is in `app/globals.css` or a component; if it isn't listed here, it doesn't exist. Add it to the token file first, then here.
 
 ## Colors
 
-Use the semantic utilities only: `bg-*`, `text-fg-*`, `shadow-*`. Never a hex, never `black`/`white`, never Tailwind's `gray-*`. Both themes come from `prefers-color-scheme` through the same variables, so a hardcoded color breaks dark mode.
+Use the semantic utilities only: `bg-*`, `text-fg-*`, `shadow-*`. Never a hex, never `black`/`white`, never Tailwind's `gray-*`. There is one theme, dark: the tokens are set once on `:root` with `color-scheme: dark`, and nothing reads `prefers-color-scheme`. Never add a light theme or a light fallback; a hardcoded color still breaks it.
 
 What text color?
 

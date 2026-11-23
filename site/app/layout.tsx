@@ -48,11 +48,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   // On Android the keyboard resizes the layout, as it does on iOS, so the search dialog stays above it.
   interactiveWidget: "resizes-content",
-  colorScheme: "light dark",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfc" },
-    { media: "(prefers-color-scheme: dark)", color: "#121212" },
-  ],
+  // Dark only: there is no light theme to switch to.
+  colorScheme: "dark",
+  themeColor: "#121212",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

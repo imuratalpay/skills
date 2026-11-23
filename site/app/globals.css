@@ -44,30 +44,36 @@
   }
 }
 
-/* Type and greys follow type-taste. Surfaces and lines are by eye: type-taste has no values for them. */
+/*
+ * Dark only: one set of tokens, with no light theme and no media query that switches them.
+ * Type and greys follow type-taste. Surfaces and lines are by eye: type-taste has no values for them.
+ */
 :root {
-  --bg: #fcfcfc;
-  --fg-1: #202020;
-  --fg-2: #424242;
-  --fg-3: #6f6f6f;
-  --fg-4: #a0a0a0;
-  --fg-5: #c7c7c7;
+  color-scheme: dark;
 
-  --surface: #ffffff;
-  --stage: #f4f4f4;
+  --bg: #121212;
+  --fg-1: #eeeeee;
+  --fg-2: #dadada;
+  --fg-3: #b6b6b6;
+  --fg-4: #7c7c7c;
+  --fg-5: #3a3a3a;
+
+  --surface: #1d1d1d;
+  --stage: #171717;
   /* Code wells are the same surface as stages; one grey, two names (ghost-cursor uses both). */
   --code: var(--stage);
-  --line: rgb(0 0 0 / 0.08);
-  --line-strong: rgb(0 0 0 / 0.15);
-  --tint: rgb(0 0 0 / 0.045);
-  --track: #d6d6d6;
-  --switch-on: #202020;
-  --switch-thumb: #ffffff;
-  --tile-a: #ececec;
-  --tile-b: #e1e1e1;
-  --lift: 0 1px 2px rgb(0 0 0 / 0.05);
-  --pop: 0 8px 24px -6px rgb(0 0 0 / 0.16);
-  --scrim: rgb(0 0 0 / 0.2);
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.15);
+  --tint: rgb(255 255 255 / 0.06);
+  --track: #3a3a3a;
+  --switch-on: #9a9a9a;
+  --switch-thumb: #f2f2f2;
+  --tile-a: #262626;
+  --tile-b: #2d2d2d;
+  /* Shadows don't read on dark surfaces; the 1px line carries the edge instead. */
+  --lift: 0 0 #0000;
+  --pop: 0 0 #0000;
+  --scrim: rgb(0 0 0 / 0.5);
 
   /* Dividers: 0.5px on high-density screens, 1px elsewhere. */
   --hairline: 1px;
@@ -76,32 +82,6 @@
 @media (min-resolution: 2dppx) {
   :root {
     --hairline: 0.5px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121212;
-    --fg-1: #eeeeee;
-    --fg-2: #dadada;
-    --fg-3: #b6b6b6;
-    --fg-4: #7c7c7c;
-    --fg-5: #3a3a3a;
-
-    --surface: #1d1d1d;
-    --stage: #171717;
-    --line: rgb(255 255 255 / 0.08);
-    --line-strong: rgb(255 255 255 / 0.15);
-    --tint: rgb(255 255 255 / 0.06);
-    --track: #3a3a3a;
-    --switch-on: #9a9a9a;
-    --switch-thumb: #f2f2f2;
-    --tile-a: #262626;
-    --tile-b: #2d2d2d;
-    /* Shadows don't read on dark surfaces; the 1px line carries the edge instead. */
-    --lift: 0 0 #0000;
-    --pop: 0 0 #0000;
-    --scrim: rgb(0 0 0 / 0.5);
   }
 }
 
@@ -223,7 +203,7 @@
   --shadow-overlay: 0 0 0 1px var(--line), var(--pop);
 }
 
-/* The library's colors, mapped onto the site's tokens so demos follow the color scheme. */
+/* The library's colors (a light theme by default), mapped onto the site's tokens so demos are dark too. */
 .gc-root {
   --gc-fg: var(--fg-1);
   --gc-muted: var(--fg-3);
