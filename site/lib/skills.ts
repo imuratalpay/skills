@@ -1,6 +1,6 @@
 /**
  * Every skill page renders from this file. Text in backticks renders as inline code.
- * Sources: ui-diff's README.md, SKILL.md, docs/release/v2.0.0.md and docs/example/comment.md, skills/type-taste/SKILL.md, ghost-cursor's skills/ghost-record/SKILL.md.
+ * Sources: ui-diff's README.md, SKILL.md, CHANGELOG.md, docs/release/v2.0.0.md and docs/example/comment.md, skills/type-taste/SKILL.md, ghost-cursor's skills/ghost-record/SKILL.md.
  */
 
 export type PhaseId = "before" | "after" | "diff";
@@ -63,16 +63,14 @@ export const SKILLS: Skill[] = [
     },
     invoke: "/ui-diff",
     invocation: "auto",
-    updated: "2026-11-22",
+    updated: "2026-11-23",
     source: { label: "imuratalpay/ui-diff", href: "https://github.com/imuratalpay/ui-diff" },
     release: {
-      version: "2.0",
+      version: "2.1",
       items: [
-        "A verdict first, like `3 measured changes on 2 routes`. It counts causes only. Side effects such as a new size, a move or a wrapped neighbour sit under the change that caused them.",
-        "Style diffs that name the change, like `padding 8px 14px → 10px 18px`, with the viewports and themes it was seen on. With `--tokens`, a value that matches no design token gets the nearest one, and a color only when one is close.",
-        "A still before and after pair for every changed area, with the change outlined. The blink and the highlighted diff fold below it.",
-        "Quiet on pushes that change no UI file: nothing is posted, and an earlier comment only gets a one-line note. Base captures are cached, so a rerun against the same base only captures head.",
-        "`ui-diff check` runs the same compare on your working tree and posts nothing. `focus` and `ignore` take CSS selectors to limit what gets compared.",
+        "Hover and focus states. Links, buttons and form fields in the first viewport are also checked hovered and reached with Tab, so a PR that only changes a hover color or drops a focus ring reads `button 'Save' · hover: background #1d4ed8 → #1e3a8a`, with a before and after crop.",
+        "Recorded flows. List a few steps in `flows`, such as a click, typing or a wait, and ui-diff replays them on base and head and compares the page at each checkpoint, under `flow 'menu' · after open`. A flow that no longer gets through is reported: `flow 'checkout' stops at step 3 on head: button 'Pay' not found`.",
+        "Component mode. Point `components` at one selector, on a route or after a flow, to get the same tight crop on both sides and only the changes inside it, under `component 'primary button'` with how its box changed. A component the selector no longer finds is reported as removed.",
       ],
     },
     example: {
@@ -114,7 +112,7 @@ export const SKILLS: Skill[] = [
     ],
     whenToUse: [
       "When a pull request changes components, styles or pages and reviewers would otherwise approve it from the code. Run `ui-diff check` on your branch first. Nothing gets posted until you publish.",
-      "It also puts design variants side by side (`?hero=1..4`), records hover and transition clips, reports new accessibility issues, and flags colors and spacing that match no design token.",
+      "It also checks a menu, form or dialog after it is used and a single component on its own, puts design variants side by side (`?hero=1..4`), records hover and transition clips, reports new accessibility issues, and flags colors and spacing that match no design token.",
     ],
     playground: {
       title: "The full-page image from the 2.0 comment for the repo’s verified example, at commits `6737326` and `cc13cab`.",
@@ -145,12 +143,13 @@ export const SKILLS: Skill[] = [
       "Show me what my branch changes visually before I open the PR.",
       "Compare ?hero=1..4 on the home page and add them to PR #88 so design can pick one.",
       "Check PR #88 for new accessibility issues and off-token colors in dark mode too.",
+      "On PR #88, check the mobile menu open state and diff the primary button on its own.",
     ],
     pairs: [
       { slug: "type-taste", why: "Fix the type before review." },
       { slug: "ghost-record", why: "Demo the finished component." },
     ],
-    keywords: ["pull request", "pr", "screenshot", "visual diff", "review", "playwright", "accessibility", "variants", "verdict", "style diff", "design tokens", "check"],
+    keywords: ["pull request", "pr", "screenshot", "visual diff", "review", "playwright", "accessibility", "variants", "verdict", "style diff", "design tokens", "check", "hover", "focus", "flows", "component"],
   },
   {
     slug: "type-taste",
