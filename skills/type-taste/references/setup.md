@@ -42,8 +42,8 @@ export const newsreader = Newsreader({ subsets: ["latin"], style: "italic", vari
 export const geistMono = localFont({ src: "./fonts/GeistMonoVariable.woff2", variable: "--font-geist-mono", weight: "100 900" });
 ```
 
-Use rsms' `InterVariable.woff2`. Some subset builds (fontsource, for example) strip `cv01` and `ss03`, and then the feature settings silently do nothing.
+Use a full `InterVariable.woff2`. Some subset builds (fontsource, for example) strip `cv01` and `ss03`, and then the feature settings silently do nothing.
 
 ## Licensing
 
-Free (OFL): Inter, Geist Mono, Newsreader, Caveat, Libre Baskerville. Paid: Tiempos Text and Heldane Text (Klim), Berkeley Mono (U.S. Graphics). Default to the free fonts and suggest the paid ones only as upgrades Murat chooses to buy. Never ship paid font files in a public repo.
+Free (OFL): Inter, Geist Mono, Newsreader, Caveat, Libre Baskerville. Paid: Tiempos Text and Heldane Text, Berkeley Mono. Default to the free fonts and suggest the paid ones only as upgrades Murat chooses to buy. Never ship paid font files in a public repo.

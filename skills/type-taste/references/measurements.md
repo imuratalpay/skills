@@ -45,7 +45,7 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 
 ### 1. Site A
 
-**Fonts.** Computed family `X`. Downloaded file `dd.woff2` name table: **PP Neue Montreal Medium** (Pangram Pangram). `@font-face` maps both weight 400 and 500 of `X` to that single Medium file. **JetBrains Mono** is declared in `@font-face` (`JetBrainsMono-Regular.woff2`) but was not requested and did not appear in computed styles on the two measured pages. Italic emphasis in the essay computes to **Georgia** italic (system serif), not a Neue Montreal italic.
+**Fonts.** Computed family `X`. Downloaded file `dd.woff2` name table: **PP Neue Montreal Medium**. `@font-face` maps both weight 400 and 500 of `X` to that single Medium file. **JetBrains Mono** is declared in `@font-face` (`JetBrainsMono-Regular.woff2`) but was not requested and did not appear in computed styles on the two measured pages. Italic emphasis in the essay computes to **Georgia** italic (system serif), not a Neue Montreal italic.
 
 **Loading.** Self-hosted same-origin woff2, preloaded. Not next/font.
 
@@ -81,10 +81,10 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 | CSS family | Real family | Notes |
 |---|---|---|
 | `Sans` | **Inter Variable** | axes `opsz` 14–32 (default 14), `wght` 100–900 |
-| `Serif` | **Heldane Text** (Klim) | roman + italic files |
-| `serifInline` | **Tiempos Text** italic (Klim) | regular + medium italic files |
+| `Serif` | **Heldane Text** | roman + italic files |
+| `serifInline` | **Tiempos Text** italic | regular + medium italic files |
 | `Mono` | **Berkeley Mono** | loaded; **not observed** in computed styles on `/` or the article |
-| `runde` | **Open Runde** (Laurids Kern) | 400/500/600 files loaded; **not observed** on these two pages |
+| `runde` | **Open Runde** | 400/500/600 files loaded; **not observed** on these two pages |
 
 `--font-settings: "cv01","ss03"` and `--font-variations: "opsz" auto` are set on the root.
 
@@ -299,7 +299,7 @@ Public homepage only (did not follow any workspace).
 | `__Inter_d8ebd1` | **Inter** variable (`wght`) | essay / UI body |
 | `__Newsreader_caac2d` | **Newsreader 16pt** italic (`wght`, `opsz`) | italic emphasis |
 | `__Script_4a0607` | **Biro Script Plus** | script asides (“fair warning”) |
-| `__lfeSans_*` / `__honkSans_*` / `__honkChat_*` | **Honk Sans** / **Honk Chat** (Seb McLauchlan) | declared; playground faux-UI mostly computed as `system-ui` / **SF Mono** / Hiragino Sans |
+| `__lfeSans_*` / `__honkSans_*` / `__honkChat_*` | **Honk Sans** / **Honk Chat** | declared; playground faux-UI mostly computed as `system-ui` / **SF Mono** / Hiragino Sans |
 
 `--font-code: "SF Mono", "SFMono-Regular", …` (system mono; no SF Mono file was downloaded). `--font-secondary: Newsreader`.
 
@@ -329,7 +329,7 @@ Public homepage only (did not follow any workspace).
 
 ### 11. Site H
 
-**Fonts.** Computed family `System` is **Kecal** (Fungi Type / Jiří Krblich) — files `System-Regular-web.woff2` / `System-Medium-web.woff2`. **JetBrains Mono** for code and tokens. **Caveat Bold** for handwritten annotations. **PP Neue Montreal Medium** (`dd.woff2`, the same cut as Site A) was requested but **did not appear** in computed typographic uniques on this page.
+**Fonts.** Computed family `System` is **Kecal** — files `System-Regular-web.woff2` / `System-Medium-web.woff2`. **JetBrains Mono** for code and tokens. **Caveat Bold** for handwritten annotations. **PP Neue Montreal Medium** (`dd.woff2`, the same cut as Site A) was requested but **did not appear** in computed typographic uniques on this page.
 
 **Loading.** Self-hosted same-origin files (woff2 + Caveat ttf).
 
@@ -408,7 +408,7 @@ Public homepage only (did not follow any workspace).
 
 ### 14. Site K
 
-**Fonts.** Display: **Saans Medium** (Displaay), self-hosted `/assets/fonts/Saans-Medium.woff2`. UI/body: **Inter** variable and **Roboto Mono** variable from **Google Fonts** (`fonts.googleapis.com` + `fonts.gstatic.com`). A tiny `ui-monospace` 8px mark also appears.
+**Fonts.** Display: **Saans Medium**, self-hosted `/assets/fonts/Saans-Medium.woff2`. UI/body: **Inter** variable and **Roboto Mono** variable from **Google Fonts** (`fonts.googleapis.com` + `fonts.gstatic.com`). A tiny `ui-monospace` 8px mark also appears.
 
 **Loading.** Mixed: one self-hosted display face + Google Fonts for Inter / Roboto Mono.
 
@@ -459,7 +459,7 @@ Public homepage only (did not follow any workspace).
 
 ### 16. Site M
 
-**Fonts.** **ABC Diatype** Regular + Medium (Dinamo), **DM Mono** (the “rolled” cut; file `dm-mono-rolled-regular-latin-*.woff2`). One computed unique used **Inter Variable** on a “Skip to content” leftover; Inter was **not** in the font network log for this page, so that occurrence is noted but not treated as a site font.
+**Fonts.** **ABC Diatype** Regular + Medium, **DM Mono** (the “rolled” cut; file `dm-mono-rolled-regular-latin-*.woff2`). One computed unique used **Inter Variable** on a “Skip to content” leftover; Inter was **not** in the font network log for this page, so that occurrence is noted but not treated as a site font.
 
 **Loading.** Self-hosted SvelteKit hashed assets (`/_app/immutable/assets/`).
 
