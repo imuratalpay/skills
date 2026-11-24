@@ -1,17 +1,24 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Before</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><title>Before</title><style>
 @font-face{font-family:"Inter";src:url(fonts/InterVariable.woff2) format("woff2");font-weight:100 900}
 body{margin:0;background:#fff;color:#000;font-family:"Inter",system-ui,sans-serif;font-size:16px;line-height:1.5}
 .page{padding:56px 64px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+.top a{color:#000;font-weight:700;text-decoration:none}
+.top input{font-size:13px;padding:4px 8px}
+.kicker{font-size:12px;letter-spacing:1px;color:#999;margin:0 0 8px}
 h1{font-size:32px;font-weight:700;line-height:1.5;margin:0}
-.date{font-size:14px;margin:0 0 16px}
+.date{font-size:14px;color:#999;margin:0 0 16px}
 code{font-family:monospace}
 table{border-collapse:collapse;width:100%} th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #ddd} th{font-weight:700}
-</style></head><body><div class="page"><article>
+</style></head><body><div class="page">
+<nav class="top"><a href="/">Notes</a><input type="search" name="q" placeholder="Search notes" aria-label="Search notes"></nav>
+<article>
   <header>
+    <p class="kicker">ENGINEERING NOTE</p>
     <h1>Ghost cursors in component demos</h1>
     <p class="date"><time datetime="2026-11-18">18 November 2026</time> · 4 min read</p>
   </header>
-  <p>A screenshot of a toggle shows two states. It can’t show <em>the moment in between</em>, and that moment is the reason the demo exists. So I record a real cursor moving through the real DOM and replay it on the page. When the reader moves their own mouse, the recording stops and hands over.</p>
+  <p>A screenshot of a toggle shows two states. It can't show <em>the moment in between</em>, and that moment is the reason the demo exists. So I record a real cursor moving through the real DOM and replay it on the page. When the reader moves their own mouse, the recording stops and hands over.</p>
   <h2>How it works</h2>
   <p>The engine replays pointer events through springs, so timing survives re-renders. Call <code>replay(recording)</code> to start it. Playback pauses when the demo scrolls offscreen and never starts under reduced motion. A recording is a JSON array of pointer events, and the <a href="#format">format</a> fits on one screen.</p>
   <figure>

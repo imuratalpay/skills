@@ -179,19 +179,19 @@ export const SKILLS: Skill[] = [
       "To review a page or a pull request: every checklist line comes back pass or fail, then one fix per issue in your project’s own syntax. Native apps, email and print are out of scope.",
     ],
     playground: {
-      title: "The same HTML rendered twice, from the worked example in `skills/type-taste/before-after`.",
+      title: "The same post before and after, from the worked example in `skills/type-taste/before-after`.",
       prompt: "/type-taste fix the typography on this page",
       phases: [
         {
           id: "before",
           label: "Before",
-          caption: "Browser defaults. A big bold title, black text, a bold table head and a wide measure.",
+          caption: "As written. A 13px search field, a pale date at 2.85:1, a big bold title, black text and a wide measure.",
           duration: 2600,
         },
         {
           id: "after",
           label: "After",
-          caption: "type-taste. The title at body size in 550, prose in grey, Newsreader italic for emphasis, mono caps on the table head.",
+          caption: "type-taste. A 16px search field, the date in fg-3, the title at body size in 550, prose in grey and Newsreader italic for emphasis.",
           duration: 4200,
         },
       ],

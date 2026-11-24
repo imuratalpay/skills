@@ -76,11 +76,11 @@ function TypeShot({ which }: { which: "before" | "after" }) {
     <Image
       src={`/type-taste/${which}.png`}
       width={1800}
-      height={which === "before" ? 1372 : 1514}
+      height={which === "before" ? 1558 : 1696}
       alt={
         which === "before"
-          ? "A blog post with browser defaults: a large bold title, black text and a bold table head."
-          : "The same post with type-taste: a quiet title at body size, grey prose, a serif italic phrase and mono caps on the table head."
+          ? "A blog post as written: a small search field, a pale label and date, a large bold title, black text and a bold table head."
+          : "The same post with type-taste: a 16px search field, a mono caps label, a quiet title at body size, grey prose, a serif italic phrase and mono caps on the table head."
       }
       sizes="(min-width: 768px) 644px, 100vw"
       draggable={false}
