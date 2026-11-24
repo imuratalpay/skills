@@ -96,7 +96,7 @@ td { font-variant-numeric: tabular-nums; text-align: end; }
 | Page feels flat | Title fg-1, prose fg-2, meta fg-3. Don't add a size |
 | Audit flags weight 700 | `th`, `b`, `strong` and `h*` are bold by default. Set them to 500 or 550 |
 | Italic looks like slanted Inter | Newsreader didn't load. `font-synthesis: none` makes that visible instead of faking it |
-| `a` and `l` didn't change shape | The Inter subset (for example fontsource) dropped `cv01`/`ss03`. Use rsms' `InterVariable.woff2` |
+| `a` and `l` didn't change shape | The Inter subset dropped `cv01`/`ss03`. Use the full `InterVariable.woff2` |
 | A line with `em` or `code` sits taller than the rest | The bigger inline face opened the line box. Give it `line-height: 0` |
 | Caps labels clump | Mono 500, +0.3px |
 | Lines feel long | Column is over 672px. Set 644px |

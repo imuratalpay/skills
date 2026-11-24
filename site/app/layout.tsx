@@ -5,7 +5,7 @@ import { SITE } from "@/lib/skills";
 import { Providers } from "./providers";
 import "./globals.css";
 
-// rsms' build: subset builds can drop the cv01 and ss03 features.
+// Full build: subset builds can drop the cv01 and ss03 features.
 const inter = localFont({
   src: "./fonts/InterVariable.woff2",
   variable: "--font-inter",
