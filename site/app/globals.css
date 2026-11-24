@@ -86,7 +86,7 @@
 }
 
 /*
- * Motion tokens: the one set every animation reads. The scale is transitions.dev's; the curves are
+ * Motion tokens: the one set every animation reads. Duration and distance tokens are shared; the curves are
  * the site's own. Pick a token by what the motion is for (the comments), not by the nearest number.
  * Nothing else in the codebase writes a duration or a curve. Opens are slower than closes.
  *
@@ -480,7 +480,7 @@ dialog::backdrop {
 }
 
 /*
- * Menu sheet: transitions.dev's panel reveal, sideways and without the blur. It slides in on the
+ * Menu sheet: a sideways panel reveal, without a blur. It slides in on the
  * drawer curve and leaves faster on ease-out; the backdrop shares both timings.
  */
 .sheet,
@@ -524,7 +524,7 @@ dialog::backdrop {
 }
 
 /*
- * Search dialog: transitions.dev's modal. Opened with a click it scales up from 0.96 and fades in;
+ * Search dialog: a modal. Opened with a click it scales up from 0.96 and fades in;
  * it leaves faster at the same scale. The backdrop shares its timing. Opened from the keyboard
  * (⌘K, /) it's instant ([data-instant]): keyboard users are already ahead of any animation.
  */
@@ -571,7 +571,7 @@ dialog::backdrop {
 }
 
 /*
- * Icon swap (components/icon-swap.tsx): transitions.dev's icon swap without the blur. Both icons
+ * Icon swap (components/icon-swap.tsx): an icon swap without a blur. Both icons
  * stay mounted in one cell; the leaving one fades and shrinks to 0.25. Symmetric, on ease-in-out.
  */
 .icon-swap {
@@ -599,7 +599,7 @@ dialog::backdrop {
 }
 
 /*
- * Tooltips (components/tooltip.tsx): transitions.dev's tooltip. A quick fade and scale from the
+ * Tooltips (components/tooltip.tsx): a tooltip. A quick fade and scale from the
  * trigger side on the way in; gone at once on the way out. The delays live in --delay-tooltip*.
  */
 .tooltip {
@@ -634,13 +634,13 @@ dialog::backdrop {
   transition-duration: var(--duration-instant);
 }
 
-/* Sidebar: transitions.dev's sliding tabs. The pill glides between items on a pointer navigation. */
+/* Sidebar: sliding tabs. The pill glides between items on a pointer navigation. */
 .nav-pill[data-animate] {
   transition: transform var(--duration-fast) var(--ease-out);
 }
 
 /*
- * FAQ (components/faq.tsx): transitions.dev's accordion. The panel's grid row goes 0fr → 1fr, so any
+ * FAQ (components/faq.tsx): accordion. The panel's grid row goes 0fr → 1fr, so any
  * answer animates without measuring; padding sits on the answer, never on the track, or the row
  * can't close fully. The answer fades and rises 4px, the chevron turns 180°. Opening takes longer
  * than closing.

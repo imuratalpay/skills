@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ms } from "@/lib/motion";
 
 /*
- * One tooltip group for the whole site (emil-interaction-details, hover-and-timers.md):
+ * One tooltip group for the whole site:
  * the first tooltip waits --delay-tooltip and fades in; while one is open, or within --delay-tooltip-warm
  * of the last closing, the next opens at once with no animation. Tooltips close at once, never show on
  * touch, open immediately for keyboard focus, and stay shut after a click until the pointer leaves.

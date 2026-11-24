@@ -60,11 +60,11 @@ Six roles. Each is a size and line-height pair; never set one without the other,
 
 ## Motion
 
-One token set in `app/globals.css`: transitions.dev's scale with the site's curves. Never write a duration, a curve or a scale in a component. In CSS use `var(--duration-fast)`, in Tailwind `duration-(--duration-quick)` and `ease-out`, in TS `seconds()`, `ms()`, `px()` and `curve()` from `lib/motion.ts`. Pick a token by what the motion is for (the comment next to it), not by the nearest number. If no token's purpose matches, add one to the set with its purpose; never inline the value.
+One token set in `app/globals.css`: the shared duration scale with the site's curves. Never write a duration, a curve or a scale in a component. In CSS use `var(--duration-fast)`, in Tailwind `duration-(--duration-quick)` and `ease-out`, in TS `seconds()`, `ms()`, `px()` and `curve()` from `lib/motion.ts`. Pick a token by what the motion is for (the comment next to it), not by the nearest number. If no token's purpose matches, add one to the set with its purpose; never inline the value.
 
 Curves: `ease-out` for entering, leaving, hover color and sliding indicators. `ease-in-out` for things swapping in place. `ease-drawer` for the sheet only. `ease-linear` for constant motion only. Never `ease-in`, never `transition-all` or bare `transition`.
 
-| What | Recipe (transitions.dev) | Tokens |
+| What | Recipe | Tokens |
 | --- | --- | --- |
 | Hover and press color | none | `duration-(--duration-quick) ease-out` |
 | Press | none | `active:scale-(--scale-press)` on buttons, `--scale-press-large` on cards |

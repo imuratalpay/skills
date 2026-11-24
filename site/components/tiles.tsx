@@ -265,7 +265,7 @@ const ROLES: { role: string; spec: string; sample: ReactNode }[] = [
   },
 ];
 
-/** transitions.dev's text swap without the blur: the new role rises 4px into place as the old one leaves upward. */
+/** Text swap without a blur: the new role rises 4px into place as the old one leaves upward. */
 const swap = () => {
   const d = px("--distance-micro");
   return {

@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Whether the last input was a pointer or the keyboard. Keyboard-driven changes don't animate
- * (emil-interaction-details: "the user's hands are already ahead of the animation").
+ * Whether the last input was a pointer or the keyboard. Keyboard-driven changes don't animate,
+ * because the user's hands are already ahead of the animation.
  */
 let last: "pointer" | "keyboard" = "pointer";
 

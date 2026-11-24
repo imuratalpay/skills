@@ -1,7 +1,6 @@
 /**
  * A timer the user didn't start ("Copied" reverting): it pauses while anything holds it and
  * resumes from what was left. Reasons are tracked, so overlapping holds never double-count.
- * From emil-interaction-details, hover-and-timers.md.
  */
 export type Hold = "hover" | "focus" | "hidden" | "blurred";
 

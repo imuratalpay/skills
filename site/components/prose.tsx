@@ -56,7 +56,7 @@ export function DashList({ items }: { items: string[] }) {
 
 type PageLink = { href: string; title: string };
 
-/* transitions.dev's learn-more hover, shift only: the arrow leans 2px toward where it goes. Quick in, softer out. */
+/* Learn-more hover, shift only: the arrow leans 2px toward where it goes. Quick in, softer out. */
 const NUDGE =
   "inline-flex transition-[translate] duration-(--duration-medium) ease-out group-hover:duration-(--duration-fast)";
 

@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { Inline } from "./prose";
 
 /**
- * transitions.dev's accordion. Each question is a button with aria-expanded; the answer stays mounted
+ * Accordion: each question is a button with aria-expanded; the answer stays mounted
  * so its height can animate, and is inert while closed so it's neither focusable nor read out.
  */
 export function Faq({ items }: { items: { q: string; a: string }[] }) {
