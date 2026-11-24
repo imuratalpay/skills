@@ -1,6 +1,6 @@
 ---
 name: type-taste
-description: Murat's own typography taste, refined over years of shipping interfaces. Use when choosing or changing fonts, font sizes, line-height, font weight, letter-spacing, text colors or greys, line length, headings, labels, numbers, links or font loading in a web project, and when reviewing or auditing a page's typography, including contrast, input zoom, overflow and truncation, casing, punctuation and text direction. It supplies the values, the technique floors, a runnable audit and a report format.
+description: Murat's own typography taste, refined over years of shipping interfaces. Use when choosing or changing fonts, font sizes, line-height, font weight, letter-spacing, text colors or greys, line length, headings, labels, numbers, links or font loading in a web project, and when reviewing or auditing a page's typography, including contrast, input zoom, overflow and truncation, casing, punctuation and text direction. It writes fixes in the styling the project already uses and supplies the values, the technique floors, a runnable audit and a file-by-file report.
 ---
 
 # type-taste

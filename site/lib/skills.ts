@@ -155,28 +155,28 @@ export const SKILLS: Skill[] = [
     slug: "type-taste",
     title: "Type taste",
     summary:
-      "Your agent sets type the way I do: every size, weight, grey and line-height, from years of shipping interfaces.",
-    short: "My type values: Inter, a serif italic for emphasis, and grey before weight before size.",
+      "Your agent sets and reviews type the way I do: my sizes, weights and greys, plus the floors every page has to meet.",
+    short: "My type values, the floors every page needs, and an audit that runs in the browser.",
     pitch:
-      "**My own type values**, refined over years of shipping interfaces. Inter at reading size, **Newsreader italic** for emphasis, and hierarchy from **grey first, weight second, size last**.",
+      "**My own type values**, with hierarchy from **grey first, weight second, size last**. It writes every fix **in the styling your project already uses** and reviews pages with **a browser audit**.",
     install: {
       commands: ["npx skills add imuratalpay/skills"],
       note: "The bundled fonts (Inter, Newsreader, Geist Mono, Caveat) are free under the SIL Open Font License.",
     },
     invoke: "/type-taste",
     invocation: "auto",
-    updated: "2026-11-18",
+    updated: "2026-11-24",
     source: { label: "imuratalpay/skills", href: "https://github.com/imuratalpay/skills/tree/main/skills/type-taste" },
     whatItDoes: [
-      "Decides what the page is for first. A reading page keeps every heading at body size in 550; a landing page gets one display line at 48/48.",
-      "Gives each text role one size, line-height, weight and grey: prose 16/26 in fg-2, meta 13/21.125 in fg-3, labels in Geist Mono 12/16 caps.",
-      "Uses a five-step grey ladder for light and dark, with no pure black and nothing you have to read below 4.9:1.",
-      "Sets emphasis in Newsreader italic instead of bold, never uses 600 or 700, and turns on tabular numbers where digits change.",
-      "Ships `tokens.css`, a Tailwind and `next/font` setup, and `audit.js`, which checks a page from the browser console and prints every failing element.",
+      "Checks how the project writes styles before it changes anything (plain CSS, CSS Modules, Tailwind or CSS-in-JS) and writes every fix that way. It keeps your project’s fonts unless you ask for mine.",
+      "Decides what the page is for, then gives each text role one size, line-height, weight and grey: prose 16/26 in fg-2, meta 13/21.125 in fg-3, headings at body size in 550 on a reading page.",
+      "Uses a five-step grey ladder for light and dark with no pure black, sets emphasis in Newsreader italic instead of bold, and never uses 600 or 700.",
+      "Holds every page to a few floors that aren’t taste: form fields at 16px so phones don’t zoom, long strings that break, and no ellipsis without a way to the full text.",
+      "Ships `tokens.css`, a Tailwind and `next/font` setup, and `audit.js`, which checks a page in the browser, contrast and field sizes included. The review comes back file by file, must-fix first.",
     ],
     whenToUse: [
       "Any type decision in a web project: fonts, sizes, line-heights, weights, tracking, greys, headings, labels, numbers, links and font loading. Also when a page feels loud or flat and you can’t say why.",
-      "Pair it with any general typography skill: that one supplies the technique and the accessibility floors, type-taste picks the values.",
+      "To review a page or a pull request: every checklist line comes back pass or fail, then one fix per issue in your project’s own syntax. Native apps, email and print are out of scope.",
     ],
     playground: {
       title: "The same HTML rendered twice, from the worked example in `skills/type-taste/before-after`.",
@@ -198,15 +198,15 @@ export const SKILLS: Skill[] = [
     },
     prompts: [
       "/type-taste fix the typography on this page",
-      "/type-taste audit the blog post template",
+      "/type-taste review the blog post template",
       "This page feels loud. Can you calm the headings down?",
-      "Set up Inter, Newsreader and Geist Mono with next/font in this app.",
+      "The page zooms in when I tap the search field on my phone.",
     ],
     pairs: [
       { slug: "ui-diff", why: "Show reviewers what changed." },
       { slug: "ghost-record", why: "Record the demo afterwards." },
     ],
-    keywords: ["typography", "fonts", "inter", "newsreader", "geist mono", "grey", "weight", "line-height", "audit"],
+    keywords: ["typography", "fonts", "inter", "newsreader", "geist mono", "grey", "weight", "line-height", "contrast", "review", "audit", "tailwind", "truncation"],
   },
   {
     slug: "ghost-record",
