@@ -1,6 +1,33 @@
 # type-taste setup
 
-Plain CSS: link `tokens.css` and put `class="mt"` on `body`. It already carries both ladders, the base styles and the three heading classes.
+## Detect the stack
+
+Do this before proposing any change. It takes a minute and decides how every fix gets written.
+
+```sh
+rg -n '"tailwindcss"|"@tailwindcss/' package.json   # Tailwind, and which major version
+ls tailwind.config.* 2>/dev/null                    # config file: Tailwind v3 style
+rg -l '@import "tailwindcss"|@theme' -g '*.css'     # v4 entry and theme block
+rg -l '\.module\.css' -g '*.{tsx,jsx,ts,js}'        # CSS Modules
+rg -l 'styled\.[a-z]+`|css`' -g '*.{tsx,jsx,ts,js}' # CSS-in-JS tagged templates
+rg -n -- '--[a-z0-9-]+:' -g '*.css' | head -40      # custom properties the project already has
+```
+
+| Evidence | Idiom | Write the fix as |
+|---|---|---|
+| `@import "tailwindcss"` or `@theme` in a CSS file | Tailwind v4 | utilities from the `@theme` below; base rules in the same global CSS file |
+| `tailwind.config.*` and no `@theme` | Tailwind v3 | the same names under `theme.extend` (`fontFamily`, `fontSize`, `fontWeight`, `letterSpacing`, `colors`), then utilities |
+| Components import `*.module.css` | CSS Modules | a declaration in that component's module |
+| A CSS-in-JS dependency, tagged templates like `` styled.p`…` `` | CSS-in-JS | a declaration inside the existing styled block |
+| One global stylesheet, plain selectors | Plain CSS | `tokens.css`, or a declaration next to the rule it fixes |
+
+- If the project already has its own custom properties for color or type, write the fix with those. Add an `--mt-*` value only when the project has nothing for that role.
+- If two idioms are present, follow the one the file you are editing already uses.
+- Never install a second styling system to deliver a typography fix.
+
+## Plain CSS
+
+Link `tokens.css` and put `class="mt"` on `body`. It already carries both ladders, the base styles and the three heading classes.
 
 ## Tailwind v4 (`globals.css`)
 
@@ -32,7 +59,7 @@ Put Tailwind's `antialiased` on `<body>` once.
 
 ## Next.js fonts
 
-Self-host everything through `next/font`. Never add a `<link>` to Google Fonts (self-hosting is the default).
+Self-host everything through `next/font`. Never add a `<link>` to a hosted font CDN (self-hosting is the default).
 
 ```ts
 import localFont from "next/font/local";

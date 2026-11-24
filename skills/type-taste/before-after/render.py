@@ -19,7 +19,7 @@ with sync_playwright() as p:
         pg.evaluate("document.fonts.ready.then(() => 0)")
         pg.screenshot(path=str(d / f"{name}{'-dark' if scheme == 'dark' else ''}.png"), full_page=True)
         r = pg.evaluate(audit)
-        print(f"{name} ({scheme}): {r['failed']} of 11 checks fail")
+        print(f"{name} ({scheme}): {r['failed']} of {r['failed'] + len(r['pass'])} checks fail")
         for f in r["fail"]:
             print(f"  {f['n']}. {f['rule']}\n     " + "\n     ".join(f["bad"]))
         if name == "after":

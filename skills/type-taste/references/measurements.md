@@ -6,7 +6,7 @@ Reference notes behind Murat's typography taste, refined over years of shipping 
 
 - Date: 18 November 2026, evening, Europe/Istanbul.
 - Viewport: 1440×1400, device pixel ratio 1. Playwright/Chromium with `color-scheme: light` emulated. Sites that are dark by default (Site F, Site E, Site M, Site K, muwrites, mutype) still rendered as dark.
-- Computed styles via `getComputedStyle`. Font files were downloaded and identified from the OpenType name table with fontTools (not guessed from CSS family aliases).
+- Computed styles via `getComputedStyle`. Font files were downloaded and identified from the OpenType name table (not guessed from CSS family aliases).
 - CSS family names in the page (for example Site B’s `Sans`, Site A’s `X`, next/font hashes) are reported as computed, then mapped to the real family from the woff2 name table when the file was obtained.
 - First-visible semantic tags can land on decorative hero type (Site A home `h3` at 720px, Site D marketing `p` at 40px). Those are labelled as decorative. Body/heading figures below prefer clearly editorial or UI text.
 - `@font-face` rules in cross-origin stylesheets were sometimes unreadable (CORS). Network font requests still show what actually loaded.
@@ -226,7 +226,7 @@ A font specimen, so many unique sizes/colors (142 typographic uniques). Treat ma
 
 **Weights:** 400, 450, 550. **OpenType:** `"liga" 0, "ss07", "ss08"` on display/body; `tabular-nums` on prices and counts.
 
-**Colors.** `color-scheme: dark`. Computed `html`/`body`/`main` backgrounds were **transparent** (exact canvas color not captured). Text: white primary, `rgb(133, 133, 133)` secondary. CSS vars include `--orbit-text: #f0f0f0`, `--orbit-text-subtle: #828387`.
+**Colors.** `color-scheme: dark`. Computed `html`/`body`/`main` backgrounds were **transparent** (exact canvas color not captured). Text: white primary, `rgb(133, 133, 133)` secondary. CSS vars include a text color `#f0f0f0` and a subtle text color `#828387`.
 
 **Measure.** No 400–800px article-style column was identified (marketing layout).
 
@@ -359,7 +359,7 @@ Public homepage only (did not follow any workspace).
 
 **Fonts.** Observed type is **Inter Variable** (`opsz` 14–32, `wght` 100–900), family name `InterVariable`, feature `"ss03"`. Also requested (so they loaded) from Site I’s font host: **Heldane Text** regular, medium, and italic. Heldane **did not appear** in the typographic-uniques snapshot on this page (possibly a logo or below-fold use not captured). No `@font-face` rules were readable (cross-origin CSS).
 
-**Loading.** Self-hosted on Site I’s font host (Vite-hashed woff2).
+**Loading.** Self-hosted on Site I’s font host (bundler-hashed woff2).
 
 **Scale:**
 
@@ -382,7 +382,7 @@ Public homepage only (did not follow any workspace).
 
 ### 13. Site J
 
-**Fonts.** **Inter Variable** (`opsz` 14–32, `wght` 100–900), self-hosted `/fonts/InterVariable.woff2`. **Caveat** 400–700 is pulled from **Google Fonts** (`fonts.googleapis.com/css2?family=Caveat…`) but **did not appear** in computed uniques on the homepage.
+**Fonts.** **Inter Variable** (`opsz` 14–32, `wght` 100–900), self-hosted `/fonts/InterVariable.woff2`. **Caveat** 400–700 is pulled from a **hosted font CDN** (`fonts.googleapis.com/css2?family=Caveat…`) but **did not appear** in computed uniques on the homepage.
 
 **Scale:**
 
@@ -408,9 +408,9 @@ Public homepage only (did not follow any workspace).
 
 ### 14. Site K
 
-**Fonts.** Display: **Saans Medium**, self-hosted `/assets/fonts/Saans-Medium.woff2`. UI/body: **Inter** variable and **Roboto Mono** variable from **Google Fonts** (`fonts.googleapis.com` + `fonts.gstatic.com`). A tiny `ui-monospace` 8px mark also appears.
+**Fonts.** Display: **Saans Medium**, self-hosted `/assets/fonts/Saans-Medium.woff2`. UI/body: **Inter** variable and **Roboto Mono** variable from a **hosted font CDN** (`fonts.googleapis.com` + `fonts.gstatic.com`). A tiny `ui-monospace` 8px mark also appears.
 
-**Loading.** Mixed: one self-hosted display face + Google Fonts for Inter / Roboto Mono.
+**Loading.** Mixed: one self-hosted display face + the hosted font CDN for Inter / Roboto Mono.
 
 **Scale:**
 
@@ -434,7 +434,7 @@ Public homepage only (did not follow any workspace).
 
 ### 15. Site L
 
-**Fonts.** Same trio as Site K, but **self-hosted** here: **Saans Medium**, **Inter** / **Inter Variable** (`opsz`+`wght` on the variable file), **Roboto Mono** variable. No Google Fonts request.
+**Fonts.** Same trio as Site K, but **self-hosted** here: **Saans Medium**, **Inter** / **Inter Variable** (`opsz`+`wght` on the variable file), **Roboto Mono** variable. No hosted font CDN request.
 
 **Loading.** Self-hosted `/` font files (plus next-style hashed names in some URLs).
 
@@ -461,7 +461,7 @@ Public homepage only (did not follow any workspace).
 
 **Fonts.** **ABC Diatype** Regular + Medium, **DM Mono** (the “rolled” cut; file `dm-mono-rolled-regular-latin-*.woff2`). One computed unique used **Inter Variable** on a “Skip to content” leftover; Inter was **not** in the font network log for this page, so that occurrence is noted but not treated as a site font.
 
-**Loading.** Self-hosted SvelteKit hashed assets (`/_app/immutable/assets/`).
+**Loading.** Self-hosted framework-hashed assets (`/_app/immutable/assets/`).
 
 **Scale:**
 
@@ -498,7 +498,7 @@ Public homepage only (did not follow any workspace).
 | UI / chrome | inter | 16px / 26px (1.625) | 400/500 | some `ls=-0.4px` |
 | Meta / captions | inter | 13px / 21.125px (1.625) or 12/16 | 400/450 | `pretty` on some |
 | Code | berkeleyMono | **13px / 21.125px (1.625)** or 14/22.75 | 400 | matches the Site O note |
-| Mono labels | berkeleyMono | 12px / 16px | 400/500 | `uppercase` (“APPLE WATCH”), `"ss03"` |
+| Mono labels | berkeleyMono | 12px / 16px | 400/500 | `uppercase` (a product-name label), `"ss03"` |
 | Display promo | inter | 60px / 60px (1.0) | 500 | `ls=-0.4px`; italic word in Libre Baskerville |
 
 **Weights:** 400, 450, 500, 550 (no 600/700 observed). **OpenType:** `"ss03"` on Inter and Berkeley Mono; `tabular-nums` on tables/pager. **text-wrap:** `pretty` on several captions and blurbs.
@@ -624,9 +624,9 @@ Site B (`h1`/`h2` 16px, weights 600/550), Site O (`h2` 16/26 w550, same as body;
 
 This is a strong “taste” signal for writing, even if rare on marketing homes.
 
-### 15. Self-hosted fonts as the default; Google Fonts is the exception — **strong default**
+### 15. Self-hosted fonts as the default; a hosted font CDN is the exception — **strong default**
 
-Google Fonts is used on Site K (Inter + Roboto Mono; Saans is self-hosted) and Site J (Caveat only; Inter is self-hosted). Everyone else that loaded fonts did so from their own origin or a first-party CDN (Site F’s font host, Site I’s font host). Site O loading is unknown. next/font with fallback `size-adjust` is common (Site B, Site G, muwrites, muratalpay, Site N, Site C’s Cormorant).
+The hosted font CDN is used on Site K (Inter + Roboto Mono; Saans is self-hosted) and Site J (Caveat only; Inter is self-hosted). Everyone else that loaded fonts did so from their own origin or a first-party CDN (Site F’s font host, Site I’s font host). Site O loading is unknown. next/font with fallback `size-adjust` is common (Site B, Site G, muwrites, muratalpay, Site N, Site C’s Cormorant).
 
 ### 16. Underlines are custom (offset and/or muted decoration color), when they appear — **occasional**
 
