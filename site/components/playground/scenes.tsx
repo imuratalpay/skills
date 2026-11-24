@@ -70,13 +70,13 @@ export function UiDiffScene(props: SceneProps) {
   );
 }
 
-/* type-taste: before.png and after.png from skills/type-taste/before-after, both 1800px wide. */
+/* type-taste: before.png and after.png from skills/type-taste/before-after, both 1800×1350. */
 function TypeShot({ which }: { which: "before" | "after" }) {
   return (
     <Image
       src={`/type-taste/${which}.png`}
       width={1800}
-      height={which === "before" ? 1558 : 1696}
+      height={1350}
       alt={
         which === "before"
           ? "A blog post as written: a small search field, a pale label and date, a large bold title, black text and a bold table head."

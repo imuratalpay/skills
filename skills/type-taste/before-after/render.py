@@ -14,7 +14,7 @@ failed_after = 0
 with sync_playwright() as p:
     b = p.chromium.launch()
     for name, scheme in [("before", "light"), ("after", "light"), ("after", "dark")]:
-        pg = b.new_page(viewport={"width": 900, "height": 400}, device_scale_factor=2, color_scheme=scheme)
+        pg = b.new_page(viewport={"width": 1440, "height": 1080}, device_scale_factor=1.25, color_scheme=scheme)
         pg.goto((d / f"{name}.html").as_uri())
         pg.evaluate("document.fonts.ready.then(() => 0)")
         pg.screenshot(path=str(d / f"{name}{'-dark' if scheme == 'dark' else ''}.png"), full_page=True)
