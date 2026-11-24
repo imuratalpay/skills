@@ -5,37 +5,37 @@ Reference notes behind Murat's typography taste, refined over years of shipping 
 ## Method
 
 - Date: 18 November 2026, evening, Europe/Istanbul.
-- Viewport: 1440×1400, device pixel ratio 1. Playwright/Chromium with `color-scheme: light` emulated. Sites that are dark by default (Linear, Polar, Modal, libraries.dev, muwrites, mutype) still rendered as dark.
+- Viewport: 1440×1400, device pixel ratio 1. Playwright/Chromium with `color-scheme: light` emulated. Sites that are dark by default (Site F, Site E, Site M, Site K, muwrites, mutype) still rendered as dark.
 - Computed styles via `getComputedStyle`. Font files were downloaded and identified from the OpenType name table with fontTools (not guessed from CSS family aliases).
-- CSS family names in the page (for example Emil’s `Sans`, Rauno’s `X`, next/font hashes) are reported as computed, then mapped to the real family from the woff2 name table when the file was obtained.
-- First-visible semantic tags can land on decorative hero type (Rauno home `h3` at 720px, Allo marketing `p` at 40px). Those are labelled as decorative. Body/heading figures below prefer clearly editorial or UI text.
+- CSS family names in the page (for example Site B’s `Sans`, Site A’s `X`, next/font hashes) are reported as computed, then mapped to the real family from the woff2 name table when the file was obtained.
+- First-visible semantic tags can land on decorative hero type (Site A home `h3` at 720px, Site D marketing `p` at 40px). Those are labelled as decorative. Body/heading figures below prefer clearly editorial or UI text.
 - `@font-face` rules in cross-origin stylesheets were sometimes unreadable (CORS). Network font requests still show what actually loaded.
 - Hanging punctuation: `hanging-punctuation` was `none` on every typographic unique collected. `font-size-adjust` was not set on live text (next/font fallback faces do declare `size-adjust` / `ascent-override`).
-- **interfaces.dev typography manual** was not fetched (login-gated). Figures come from Murat’s computed-style capture, summarized here (18 Nov 2026). Loading method and some fields were not in that note and are marked unknown.
-- **muratalpay.me** was measured read-only. **linear.app** was measured on the public homepage only (`https://linear.app/`, no workspace URL).
+- **Site O** was not fetched (login-gated). Figures come from Murat’s computed-style capture, summarized here (18 Nov 2026). Loading method and some fields were not in that note and are marked unknown.
+- **muratalpay.me** was measured read-only. **Site F** was measured on the public homepage only (no workspace URL).
 
 Pages measured:
 
 | Site | Pages | HTTP |
 |---|---|---|
-| rauno.me | `/`, `/craft/interaction-design` | 200 |
-| emilkowal.ski | `/`, `/ui/developing-taste` | 200 |
-| joshpuckett.me | `/` | 200 |
-| allo.joshpuckett.me | `/` | 200 |
+| Site A | `/`, essay | 200 |
+| Site B | `/`, article | 200 |
+| Site C | `/` | 200 |
+| Site D | `/` | 200 |
 | mutype.vercel.app | `/` | 200 |
 | muwrites.dev | `/`, `/articles/intent-is-the-moat` | 200 |
-| polar.sh | `/` | 200 |
+| Site E | `/` | 200 |
 | muratalpay.me | `/` | 200 |
-| linear.app | `/` only | 200 |
-| benji.org | `/stageshow` | 200 |
-| devouringdetails.com | `/system/button` | 200 |
-| interfere.com | `/product/designers` | 200 |
-| jakubantalik.com | `/` | 200 |
-| libraries.dev | `/` | 200 |
-| transitions.dev | `/` | 200 |
-| modal.com | `/` | 200 |
-| jakub.kr | `/writing/the-era-of-personal-software` | 200 |
-| interfaces.dev | typography manual (Murat’s capture only) | not fetched |
+| Site F | `/` only | 200 |
+| Site G | inner page | 200 |
+| Site H | docs page | 200 |
+| Site I | product page | 200 |
+| Site J | `/` | 200 |
+| Site K | `/` | 200 |
+| Site L | `/` | 200 |
+| Site M | `/` | 200 |
+| Site N | essay | 200 |
+| Site O | login-gated (Murat’s capture only) | not fetched |
 
 Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/ttf), `extract/font-names.txt`.
 
@@ -43,7 +43,7 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 
 ## Per-site findings
 
-### 1. rauno.me
+### 1. Site A
 
 **Fonts.** Computed family `X`. Downloaded file `dd.woff2` name table: **PP Neue Montreal Medium** (Pangram Pangram). `@font-face` maps both weight 400 and 500 of `X` to that single Medium file. **JetBrains Mono** is declared in `@font-face` (`JetBrainsMono-Regular.woff2`) but was not requested and did not appear in computed styles on the two measured pages. Italic emphasis in the essay computes to **Georgia** italic (system serif), not a Neue Montreal italic.
 
@@ -74,7 +74,7 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 
 ---
 
-### 2. emilkowal.ski
+### 2. Site B
 
 **Fonts** (CSS name → name table of the next/font woff2):
 
@@ -90,7 +90,7 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 
 **Loading.** next/font, self-hosted `/_next/static/media/*.woff2`, `font-display: swap`, fallback faces with `size-adjust` / `ascent-override`.
 
-**Scale** (article “Developing Taste”; first `p` at 14px is a course banner, not prose):
+**Scale** (article; first `p` at 14px is a course banner, not prose):
 
 | Role | Family | Size / lh | Weight | Notes |
 |---|---|---|---|---|
@@ -114,9 +114,9 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 
 ---
 
-### 3. joshpuckett.me
+### 3. Site C
 
-**Fonts.** Visible type computes to **Allo**. Downloaded file: **Allo Variable Friendly** (Josh Puckett, based on Inter), axes `opsz` 9–32 (default 14) and `wght` 100–900 — **no `ROND` axis** in this cut. Also requested: **Cormorant Garamond Light** (roman + italic, variable `wght` 300–700) via next/static files; **not observed** in computed styles on the homepage. `@font-face` also declares Signifier, GT Super Text, and Martina Plantijn; those files were **not requested** on `/`, so they were not used on the measured homepage. The `body` element itself computes to Signifier 16/24, but all visible text samples were Allo.
+**Fonts.** Visible type computes to **Allo**. Downloaded file: **Allo Variable Friendly** (Site C, based on Inter), axes `opsz` 9–32 (default 14) and `wght` 100–900 — **no `ROND` axis** in this cut. Also requested: **Cormorant Garamond Light** (roman + italic, variable `wght` 300–700) via next/static files; **not observed** in computed styles on the homepage. `@font-face` also declares Signifier, GT Super Text, and Martina Plantijn; those files were **not requested** on `/`, so they were not used on the measured homepage. The `body` element itself computes to Signifier 16/24, but all visible text samples were Allo.
 
 **Loading.** Self-hosted woff2, preload. Allo Variable Friendly is same-origin.
 
@@ -126,7 +126,7 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 |---|---|---|---|---|---|
 | Body / bio | Allo | 16px / 26px (**1.625**) | **420** | pretty | `rgb(82, 82, 82)` |
 | Inline links in bio | Allo | 16px / 26px (1.625) | 420 | pretty | `rgb(10, 10, 10)` |
-| `h1` `@joshpuckett`, `h2` Projects | Allo | 24px / 36px (1.5) | 600 | pretty | `rgb(10, 10, 10)` |
+| `h1` name, `h2` Projects | Allo | 24px / 36px (1.5) | 600 | pretty | `rgb(10, 10, 10)` |
 | Project titles | Allo | 16px / 26px (1.625) | 500 | wrap | `rgb(10, 10, 10)` |
 
 **Weights:** 420, 500, 600 (fine intermediate 420). **OpenType:** none non-default observed. **Colors.** Bg `rgb(250, 250, 250)`. Primary `rgb(10, 10, 10)`, secondary `rgb(82, 82, 82)`.
@@ -137,11 +137,11 @@ Supporting raw files: `raw/*.json`, `extract/`, `fonts/` (downloaded woff/woff2/
 
 ---
 
-### 4. allo.joshpuckett.me
+### 4. Site D
 
 A font specimen, so many unique sizes/colors (142 typographic uniques). Treat marketing/hero type as display, not a blog scale.
 
-**Fonts.** **Allo Variable** (name table), axes `opsz` 9–32 (default 14), `wght` 100–900, **`ROND` 0–100 (default 50)**. Also loaded: static **Allo SemiBold Oblique**. Computed families also include `Allo Oblique`, `Allo Oblique Weights`, and `Kit Allo` (icon/UI cut of Allo). **Signifier Regular** was requested from `joshpuckett.me` (likely an in-use card); not the page UI font. Copyright: Josh Puckett 2026, portions Inter.
+**Fonts.** **Allo Variable** (name table), axes `opsz` 9–32 (default 14), `wght` 100–900, **`ROND` 0–100 (default 50)**. Also loaded: static **Allo SemiBold Oblique**. Computed families also include `Allo Oblique`, `Allo Oblique Weights`, and `Kit Allo` (icon/UI cut of Allo). **Signifier Regular** was requested from Site C (likely an in-use card); not the page UI font. Copyright: Site C 2026, portions Inter.
 
 **Loading.** Self-hosted `/assets/*.woff2`, preloaded (`font-display: block` on the variable face).
 
@@ -156,7 +156,7 @@ A font specimen, so many unique sizes/colors (142 typographic uniques). Treat ma
 | `h3` / UI | Kit Allo | 15px / 20px (1.333) | 600 | `ROND` 25 |
 | Caps label `h4` | Kit Allo | 11px / 16px | 700 | `ls=0.66px`, `uppercase`, `"case"`, `ROND` 50 |
 | `small` | Allo | 11px / 14.85px (1.35) | 420 | |
-| `code` “npm i allo-font” | Allo | 22px / 25.3px (1.15) | 650 | `ls=0.22px`, `tabular-nums` |
+| `code` (install line) | Allo | 22px / 25.3px (1.15) | 650 | `ls=0.22px`, `tabular-nums` |
 | Buttons | Allo | 32px / 38.7px | 700 | `ROND` 50, `opsz` 32, `wght` 700 |
 
 **Weights observed:** 100–900 including 420, 550, 620, 650, 750. **text-wrap:** `pretty`, `balance`, and `nowrap balance`. **OpenType:** specimen toggles `ss01`, `ss02`, `ss03`, `case`, `frac`, `zero`, `sups`, `cv01`, `calt`. **Variation axes** actually set on live elements: `ROND`, `opsz`, `wght`.
@@ -205,7 +205,7 @@ A font specimen, so many unique sizes/colors (142 typographic uniques). Treat ma
 
 ---
 
-### 7. polar.sh
+### 7. Site E
 
 **Fonts.** **PP Neue Montreal Variable Upright** (`wght` 100–900) and **Geist Mono** variable (`wght` 100–900). Self-hosted `/fonts/*.woff2`.
 
@@ -215,7 +215,7 @@ A font specimen, so many unique sizes/colors (142 typographic uniques). Treat ma
 
 | Role | Family | Size / lh | Weight | Tracking | Wrap |
 |---|---|---|---|---|---|
-| `h1` “Meet Polar” | PP Neue Montreal | 36px / 45px (1.25) | 400 | (features only) | balance |
+| `h1` | PP Neue Montreal | 36px / 45px (1.25) | 400 | (features only) | balance |
 | Subhead | same | 36px / 45px (1.25) | 400 | | balance |
 | Mid display | same | 30px / 41.25px (1.375) or 30/37.5 (1.25) | 400 | | |
 | `h3` / 20px copy | same | 20px / 27.5px (1.375) | 400 | +0.24px | pretty on some |
@@ -260,11 +260,11 @@ A font specimen, so many unique sizes/colors (142 typographic uniques). Treat ma
 
 ---
 
-### 9. linear.app (public homepage only)
+### 9. Site F (public homepage only)
 
-Final URL: `https://linear.app/` (did not follow any workspace).
+Public homepage only (did not follow any workspace).
 
-**Fonts.** **Inter Variable** (`opsz` 14–32, `wght` 100–900) and **Berkeley Mono Variable** (`wght` 100–900, `wdth` 60–100, `slnt` -16–0). Self-hosted from `static.linear.app/fonts/`.
+**Fonts.** **Inter Variable** (`opsz` 14–32, `wght` 100–900) and **Berkeley Mono Variable** (`wght` 100–900, `wdth` 60–100, `slnt` -16–0). Self-hosted from Site F’s font host.
 
 **Scale:**
 
@@ -286,11 +286,11 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 **Measure.** Marketing descriptions around **540–566px** (`max-width` 540px / 566.438px). Narrower cards ~362–368px.
 
-**Signatures.** Inter + Berkeley Mono. cv01/ss03 (same pair as Emil). Tight 1.0 display lh and strong negative tracking. Intermediate weights 510/590. Tabular lining figures. Mono used for figure labels, not only code.
+**Signatures.** Inter + Berkeley Mono. cv01/ss03 (same pair as Site B). Tight 1.0 display lh and strong negative tracking. Intermediate weights 510/590. Tabular lining figures. Mono used for figure labels, not only code.
 
 ---
 
-### 10. benji.org/stageshow
+### 10. Site G
 
 **Fonts** (next/font hashed families, identified from files):
 
@@ -298,7 +298,7 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 |---|---|---|
 | `__Inter_d8ebd1` | **Inter** variable (`wght`) | essay / UI body |
 | `__Newsreader_caac2d` | **Newsreader 16pt** italic (`wght`, `opsz`) | italic emphasis |
-| `__benjiScript_4a0607` | **Biro Script Plus** | script asides (“fair warning”) |
+| `__Script_4a0607` | **Biro Script Plus** | script asides (“fair warning”) |
 | `__lfeSans_*` / `__honkSans_*` / `__honkChat_*` | **Honk Sans** / **Honk Chat** (Seb McLauchlan) | declared; playground faux-UI mostly computed as `system-ui` / **SF Mono** / Hiragino Sans |
 
 `--font-code: "SF Mono", "SFMono-Regular", …` (system mono; no SF Mono file was downloaded). `--font-secondary: Newsreader`.
@@ -309,7 +309,7 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 | Role | Family | Size / lh | Weight | Tracking | Extra |
 |---|---|---|---|---|---|
-| `h1` “Stageshow” | Inter | 14px / 20px (1.429) | 500 | -0.09px | `balance` |
+| `h1` | Inter | 14px / 20px (1.429) | 500 | -0.09px | `balance` |
 | Body | Inter | 14px / 20px (1.429) | **460** | -0.09px | |
 | `h2` / small heads | Inter | 13px / 15.6px (1.2) | 460 | -0.04px | muted |
 | Figcaption | Inter | 12px / 18px (1.5) | 400 | | `rgba(0,0,0,0.4)` |
@@ -327,9 +327,9 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 ---
 
-### 11. devouringdetails.com/system/button
+### 11. Site H
 
-**Fonts.** Computed family `System` is **Kecal** (Fungi Type / Jiří Krblich) — files `System-Regular-web.woff2` / `System-Medium-web.woff2`. **JetBrains Mono** for code and tokens. **Caveat Bold** for handwritten annotations. **PP Neue Montreal Medium** (`dd.woff2`, the same cut as rauno.me) was requested but **did not appear** in computed typographic uniques on this page.
+**Fonts.** Computed family `System` is **Kecal** (Fungi Type / Jiří Krblich) — files `System-Regular-web.woff2` / `System-Medium-web.woff2`. **JetBrains Mono** for code and tokens. **Caveat Bold** for handwritten annotations. **PP Neue Montreal Medium** (`dd.woff2`, the same cut as Site A) was requested but **did not appear** in computed typographic uniques on this page.
 
 **Loading.** Self-hosted same-origin files (woff2 + Caveat ttf).
 
@@ -337,7 +337,7 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 | Role | Family | Size / lh | Weight | Extra |
 |---|---|---|---|---|
-| `h1` “Button” | System = Kecal | 18px / 16px (**0.889**) | 400 | very tight |
+| `h1` | System = Kecal | 18px / 16px (**0.889**) | 400 | very tight |
 | Subline `h2` | same | 18px / 16px (0.889) | 400 | secondary grey |
 | Body prose | same | 18px / 30px (**1.667**) | 400 | `pretty` |
 | `h3` | same | 18px / 27px (1.5) | 500 | |
@@ -347,19 +347,19 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 | Annotation | Caveat | 24px / 36px (1.5) | 700 | nowrap |
 | Caps badge | System | 9px / 26px | 600 | `ls=0.2px`, uppercase |
 
-**Weights:** 400, 500, 600, 700. **Colors.** Bg `rgb(252, 252, 252)` — same recipe as Rauno’s essay. Primary `rgb(23, 23, 23)`, secondary `rgb(111, 111, 111)`, muted `rgb(199, 199, 199)`, accent `oklch(0.71 0.24 42.36)` / `rgb(251, 113, 0)` in code.
+**Weights:** 400, 500, 600, 700. **Colors.** Bg `rgb(252, 252, 252)` — same recipe as Site A’s essay. Primary `rgb(23, 23, 23)`, secondary `rgb(111, 111, 111)`, muted `rgb(199, 199, 199)`, accent `oklch(0.71 0.24 42.36)` / `rgb(251, 113, 0)` in code.
 
 **Measure.** Content well **782.69px ≈ 68.8–77.4ch** (docs layout, wider than a blog column).
 
-**Signatures.** Same grey trio as rauno.me (23 / 111 / 252). Tight heading lh vs 1.667 prose. Handwritten annotation. Mono metadata (`solid | soft | ghost`).
+**Signatures.** Same grey trio as Site A (23 / 111 / 252). Tight heading lh vs 1.667 prose. Handwritten annotation. Mono metadata (`solid | soft | ghost`).
 
 ---
 
-### 12. interfere.com/product/designers
+### 12. Site I
 
-**Fonts.** Observed type is **Inter Variable** (`opsz` 14–32, `wght` 100–900), family name `InterVariable`, feature `"ss03"`. Also requested (so they loaded) from `assets.interfere.com`: **Heldane Text** regular, medium, and italic. Heldane **did not appear** in the typographic-uniques snapshot on this page (possibly a logo or below-fold use not captured). No `@font-face` rules were readable (cross-origin CSS).
+**Fonts.** Observed type is **Inter Variable** (`opsz` 14–32, `wght` 100–900), family name `InterVariable`, feature `"ss03"`. Also requested (so they loaded) from Site I’s font host: **Heldane Text** regular, medium, and italic. Heldane **did not appear** in the typographic-uniques snapshot on this page (possibly a logo or below-fold use not captured). No `@font-face` rules were readable (cross-origin CSS).
 
-**Loading.** Self-hosted on `assets.interfere.com` (Vite-hashed woff2).
+**Loading.** Self-hosted on Site I’s font host (Vite-hashed woff2).
 
 **Scale:**
 
@@ -380,7 +380,7 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 ---
 
-### 13. jakubantalik.com
+### 13. Site J
 
 **Fonts.** **Inter Variable** (`opsz` 14–32, `wght` 100–900), self-hosted `/fonts/InterVariable.woff2`. **Caveat** 400–700 is pulled from **Google Fonts** (`fonts.googleapis.com/css2?family=Caveat…`) but **did not appear** in computed uniques on the homepage.
 
@@ -406,7 +406,7 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 ---
 
-### 14. libraries.dev
+### 14. Site K
 
 **Fonts.** Display: **Saans Medium** (Displaay), self-hosted `/assets/fonts/Saans-Medium.woff2`. UI/body: **Inter** variable and **Roboto Mono** variable from **Google Fonts** (`fonts.googleapis.com` + `fonts.gstatic.com`). A tiny `ui-monospace` 8px mark also appears.
 
@@ -428,13 +428,13 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 **Measure.** Cards **492px**. No single essay column.
 
-**Signatures.** Saans for display, Inter for UI (same pairing as transitions.dev). Underlines with `text-underline-offset: 2px` and 50% decoration color. `pretty`/`balance` widely used.
+**Signatures.** Saans for display, Inter for UI (same pairing as Site L). Underlines with `text-underline-offset: 2px` and 50% decoration color. `pretty`/`balance` widely used.
 
 ---
 
-### 15. transitions.dev
+### 15. Site L
 
-**Fonts.** Same trio as libraries.dev, but **self-hosted** here: **Saans Medium**, **Inter** / **Inter Variable** (`opsz`+`wght` on the variable file), **Roboto Mono** variable. No Google Fonts request.
+**Fonts.** Same trio as Site K, but **self-hosted** here: **Saans Medium**, **Inter** / **Inter Variable** (`opsz`+`wght` on the variable file), **Roboto Mono** variable. No Google Fonts request.
 
 **Loading.** Self-hosted `/` font files (plus next-style hashed names in some URLs).
 
@@ -453,11 +453,11 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 **Measure.** Subtitle `p` **600px** (`max-width: 600px`). Bento descriptions ~397px.
 
-**Signatures.** Same Saans + Inter + Roboto Mono system as libraries.dev, light instead of dark. `text-underline-offset: 2px` on at least one link. Tabular metric.
+**Signatures.** Same Saans + Inter + Roboto Mono system as Site K, light instead of dark. `text-underline-offset: 2px` on at least one link. Tabular metric.
 
 ---
 
-### 16. modal.com
+### 16. Site M
 
 **Fonts.** **ABC Diatype** Regular + Medium (Dinamo), **DM Mono** (the “rolled” cut; file `dm-mono-rolled-regular-latin-*.woff2`). One computed unique used **Inter Variable** on a “Skip to content” leftover; Inter was **not** in the font network log for this page, so that occurrence is noted but not treated as a site font.
 
@@ -483,11 +483,11 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 
 ---
 
-### 17. jakub.kr/writing/the-era-of-personal-software
+### 17. Site N
 
 **Fonts.** CSS names `inter`, `heldane`, `berkeleyMono`, `libreBaskerville`, identified as **Inter Variable** (`opsz` 14–32, `wght` **400–700** in this subset), **Heldane Text**, **Berkeley Mono**, **Libre Baskerville Italic**. next/font self-hosted `/_next/static/immutable/media/*`.
 
-**Scale** (this is an essay, and it closely matches the interfaces.dev manual):
+**Scale** (this is an essay, and it closely matches the Site O capture):
 
 | Role | Family | Size / lh | Weight | Extra |
 |---|---|---|---|---|
@@ -497,23 +497,23 @@ Final URL: `https://linear.app/` (did not follow any workspace).
 | Inline `em` | libreBaskerville | 17px / 27.625px (or 16/24) | 400 italic | sometimes `pretty` |
 | UI / chrome | inter | 16px / 26px (1.625) | 400/500 | some `ls=-0.4px` |
 | Meta / captions | inter | 13px / 21.125px (1.625) or 12/16 | 400/450 | `pretty` on some |
-| Code | berkeleyMono | **13px / 21.125px (1.625)** or 14/22.75 | 400 | matches the typography-manual note |
+| Code | berkeleyMono | **13px / 21.125px (1.625)** or 14/22.75 | 400 | matches the Site O note |
 | Mono labels | berkeleyMono | 12px / 16px | 400/500 | `uppercase` (“APPLE WATCH”), `"ss03"` |
 | Display promo | inter | 60px / 60px (1.0) | 500 | `ls=-0.4px`; italic word in Libre Baskerville |
 
 **Weights:** 400, 450, 500, 550 (no 600/700 observed). **OpenType:** `"ss03"` on Inter and Berkeley Mono; `tabular-nums` on tables/pager. **text-wrap:** `pretty` on several captions and blurbs.
 
-**Colors.** Bg `rgb(252, 252, 252)`. Text mostly in **Lab greys**: `lab(12.3)` primary, `lab(28.08)` prose, `lab(46.64)` / `lab(54.76)` / `lab(58.59)` / `lab(75.87)` secondary–tertiary. (Murat’s interfaces.dev note used Lab L 94/87/74/52/46 on a dark bg — same language, inverted because this essay is light.)
+**Colors.** Bg `rgb(252, 252, 252)`. Text mostly in **Lab greys**: `lab(12.3)` primary, `lab(28.08)` prose, `lab(46.64)` / `lab(54.76)` / `lab(58.59)` / `lab(75.87)` secondary–tertiary. (Murat’s Site O note used Lab L 94/87/74/52/46 on a dark bg — same language, inverted because this essay is light.)
 
 **Measure.** Paragraphs / main **644px**.
 
-**Signatures.** Inter + Heldane + Berkeley Mono + italic serif accent. Heading equals body size, weight 550 only. Prose lh exactly 1.625. Code lh 1.625. This is the closest live match to the typography manual.
+**Signatures.** Inter + Heldane + Berkeley Mono + italic serif accent. Heading equals body size, weight 550 only. Prose lh exactly 1.625. Code lh 1.625. This is the closest live match to the Site O capture.
 
 ---
 
-### 18. interfaces.dev typography manual (from Murat’s capture; not fetched)
+### 18. Site O (from Murat’s capture; not fetched)
 
-Source: Murat’s private capture of the login-gated manual (not included). Loading method, measure, text-wrap, underline, and hanging punctuation were **not in the note**.
+Source: Murat’s private capture of the login-gated reference (not included). Loading method, measure, text-wrap, underline, and hanging punctuation were **not in the note**.
 
 **Fonts.** **interVariable** (UI/body), **heldane** (serif accents/display), **berkeleyMono** (code + labels), **mondwest** (pixel display/meta).
 
@@ -534,107 +534,107 @@ Source: Murat’s private capture of the login-gated manual (not included). Load
 | Pixel meta | mondwest | 14px / 20px | | **+0.35px** |
 | Code | Berkeley Mono | 13 / 21.125 (**1.625**), also 14/22.75, 12/19.5 | | |
 
-**Weights:** 400, 450, 500, 550 (fine half-steps; **no 600/700** in the note). **Colors.** Dark background. Greys given as Lab L: 94 primary, 87 prose, 74 secondary, 52 tertiary, 46 muted. Display lh 1.0–1.25; prose 1.625. `tnum` is discussed in the article; the capture note does not list a computed `font-variant-numeric` string.
+**Weights:** 400, 450, 500, 550 (fine half-steps; **no 600/700** in the note). **Colors.** Dark background. Greys given as Lab L: 94 primary, 87 prose, 74 secondary, 52 tertiary, 46 muted. Display lh 1.0–1.25; prose 1.625. `tnum` is discussed in the capture; the capture note does not list a computed `font-variant-numeric` string.
 
 ---
 
 ## Patterns
 
-Labels describe how firmly each pattern sits in this taste, not a score. A pattern is noted only when it was actually observed (or, for interfaces.dev, stated in Murat’s capture). Declared-but-unused fonts are ignored. Weaker related cases are called out.
+Labels describe how firmly each pattern sits in this taste, not a score. A pattern is noted only when it was actually observed (or, for Site O, stated in Murat’s capture). Declared-but-unused fonts are ignored. Weaker related cases are called out.
 
 ### 1. Inter (or Inter Variable) as the workhorse sans — **common**
 
-Observed as the main UI and/or body face on: emilkowal.ski, muwrites.dev (body), muratalpay.me, linear.app, interfere.com, jakubantalik.com, libraries.dev, transitions.dev, jakub.kr, interfaces.dev, benji.org.
+Observed as the main UI and/or body face on: Site B, muwrites.dev (body), muratalpay.me, Site F, Site I, Site J, Site K, Site L, Site N, Site O, Site G.
 
-Not Inter: rauno.me and polar.sh (PP Neue Montreal), mutype.vercel.app (Geist only), modal.com (ABC Diatype), devouringdetails.com (Kecal), joshpuckett.me and allo.joshpuckett.me (Allo, which is Inter-derived — see below).
+Not Inter: Site A and Site E (PP Neue Montreal), mutype.vercel.app (Geist only), Site M (ABC Diatype), Site H (Kecal), Site C and Site D (Allo, which is Inter-derived — see below).
 
 **Evidence:** woff2 name tables + computed families above.
 
-### 2. Allo as a friendly Inter-derived UI face, with intermediate weights — **occasional** (plus the Allo specimen itself)
+### 2. Allo as a friendly Inter-derived UI face, with intermediate weights — **occasional** (plus Site D itself)
 
-joshpuckett.me uses Allo Variable Friendly (`opsz`+`wght`, weight **420** body, 600 headings, `text-wrap: pretty`). allo.joshpuckett.me uses the full variable with an extra **`ROND`** axis and many half-weights (420, 550, 620, 650…). Copyright on both files credits Josh Puckett and the Inter project.
+Site C uses Allo Variable Friendly (`opsz`+`wght`, weight **420** body, 600 headings, `text-wrap: pretty`). Site D uses the full variable with an extra **`ROND`** axis and many half-weights (420, 550, 620, 650…). Copyright on both files credits Site C and the Inter project.
 
 ### 3. A real italic serif used for emphasis, not a sloped sans — **occasional**
 
-- emilkowal.ski: Tiempos Text italic for `em`, Heldane Text for pull quotes
-- interfaces.dev: Heldane accents (capture)
-- jakub.kr: Heldane inset + Libre Baskerville italic `em`
-- rauno.me: Georgia italic `em` in the essay
-- benji.org: Newsreader italic (`opsz` 10) for “too much”
+- Site B: Tiempos Text italic for `em`, Heldane Text for pull quotes
+- Site O: Heldane accents (capture)
+- Site N: Heldane inset + Libre Baskerville italic `em`
+- Site A: Georgia italic `em` in the essay
+- Site G: Newsreader italic (`opsz` 10) for “too much”
 
-Heldane files also loaded on interfere.com but were not seen in computed text. Cormorant loaded on joshpuckett.me home but was not used there.
+Heldane files also loaded on Site I but were not seen in computed text. Cormorant loaded on Site C home but was not used there.
 
 ### 4. A script or handwriting accent at text size — **occasional**
 
-muratalpay.me (Momo Signature “Murat” at 15px), devouringdetails.com (Caveat 24px annotations), benji.org (Biro Script Plus “fair warning”).
+muratalpay.me (Momo Signature “Murat” at 15px), Site H (Caveat 24px annotations), Site G (Biro Script Plus “fair warning”).
 
 ### 5. A dedicated mono for code and/or metadata labels — **common**
 
-Observed in computed styles: interfaces.dev (Berkeley Mono, capture), jakub.kr (Berkeley Mono labels + code), linear.app (Berkeley Mono caps labels + code), polar.sh (Geist Mono), devouringdetails.com (JetBrains Mono), libraries.dev (Roboto Mono), transitions.dev (Roboto Mono), modal.com (DM Mono), benji.org (SF Mono, system stack), allo.joshpuckett.me (Allo itself with `tabular-nums` on the npm line — weaker, not a second family).
+Observed in computed styles: Site O (Berkeley Mono, capture), Site N (Berkeley Mono labels + code), Site F (Berkeley Mono caps labels + code), Site E (Geist Mono), Site H (JetBrains Mono), Site K (Roboto Mono), Site L (Roboto Mono), Site M (DM Mono), Site G (SF Mono, system stack), Site D (Allo itself with `tabular-nums` on the npm line — weaker, not a second family).
 
 Nine solid matches, plus Allo as a maybe if its mono-styled labels count.
 
-Emil loads Berkeley Mono and Rauno declares JetBrains Mono, but neither appeared on the pages reviewed.
+Site B loads Berkeley Mono and Site A declares JetBrains Mono, but neither appeared on the pages reviewed.
 
 ### 6. `text-wrap: pretty` and/or `balance` — **strong default**
 
-pretty and/or balance observed on: joshpuckett.me, allo.joshpuckett.me, emilkowal.ski (article), mutype.vercel.app, muwrites.dev (headings `balance`), polar.sh, muratalpay.me (`balance` on `h1`), linear.app, devouringdetails.com, interfere.com, jakubantalik.com, libraries.dev, transitions.dev, modal.com, jakub.kr, benji.org (`balance`). **rauno.me** was `wrap` only. **interfaces.dev** wrap was not in the capture (unknown).
+pretty and/or balance observed on: Site C, Site D, Site B (article), mutype.vercel.app, muwrites.dev (headings `balance`), Site E, muratalpay.me (`balance` on `h1`), Site F, Site H, Site I, Site J, Site K, Site L, Site M, Site N, Site G (`balance`). **Site A** was `wrap` only. **Site O** wrap was not in the capture (unknown).
 
 ### 7. Tight display line-height (about 1.0–1.25) vs looser prose (about 1.5–1.75) — **common**
 
-Clear split: muwrites.dev (48/48 vs 17/27.2), linear.app (64/64 vs 15/24), interfere.com (56/56 vs 15/24), interfaces.dev (display 1.0–1.25 vs prose 1.625), modal.com (45/48 vs ~1.5 UI / 18/24 lead), libraries.dev (42/45 vs 16/24), transitions.dev (46/52 vs 16/24.2), devouringdetails.com (18/16 vs 18/30), allo.joshpuckett.me (hero 0.85 vs body 1.35), jakub.kr (60/60 display; prose 1.625), rauno.me essay (title 1.25 vs prose 1.75).
+Clear split: muwrites.dev (48/48 vs 17/27.2), Site F (64/64 vs 15/24), Site I (56/56 vs 15/24), Site O (display 1.0–1.25 vs prose 1.625), Site M (45/48 vs ~1.5 UI / 18/24 lead), Site K (42/45 vs 16/24), Site L (46/52 vs 16/24.2), Site H (18/16 vs 18/30), Site D (hero 0.85 vs body 1.35), Site N (60/60 display; prose 1.625), Site A essay (title 1.25 vs prose 1.75).
 
-Weaker or absent: joshpuckett.me (1.5 / 1.625), emilkowal.ski (headings stay 16/24), polar.sh (1.25 display, 1.375 mid), muratalpay.me / jakubantalik.com / benji.org (small type, modest lh contrast), mutype (no prose).
+Weaker or absent: Site C (1.5 / 1.625), Site B (headings stay 16/24), Site E (1.25 display, 1.375 mid), muratalpay.me / Site J / Site G (small type, modest lh contrast), mutype (no prose).
 
 ### 8. Negative tracking on display; slight positive tracking on caps/meta labels — **common** on display, **used often** on meta
 
-Negative display tracking: muwrites, linear, interfere, interfaces (capture), libraries, transitions, modal, jakub.kr (on 16px and 60px lines), allo (hero -0.64px), muratalpay (`h1` -0.09px, small), benji (small negative on titles).
+Negative display tracking: muwrites, Site F, Site I, Site O (capture), Site K, Site L, Site M, Site N (on 16px and 60px lines), Site D (hero -0.64px), muratalpay (`h1` -0.09px, small), Site G (small negative on titles).
 
-Positive meta/caps tracking: interfaces (+0.3px labels, +0.35px mondwest), allo caps +0.66px, interfere caps +0.5px, muwrites `⌘` +0.48px, devouringdetails badge +0.2px, modal small UI +0.1–0.36px, polar **almost all type** at +0.24px (a different, site-wide choice).
+Positive meta/caps tracking: Site O (+0.3px labels, +0.35px mondwest), Site D caps +0.66px, Site I caps +0.5px, muwrites `⌘` +0.48px, Site H badge +0.2px, Site M small UI +0.1–0.36px, Site E **almost all type** at +0.24px (a different, site-wide choice).
 
 ### 9. Intermediate / variable font weights (not just 400 and 700) — **common**
 
-450/550/590/510/420/430/460 appear on: joshpuckett.me (420), allo.joshpuckett.me (many), emilkowal.ski (550), muwrites.dev (550, 590), polar.sh (450, 550), linear.app (510, 590), interfere.com (450), jakub.kr (450, 550), interfaces.dev (450, 550; note says no 600/700), benji.org (430, 450, 460).
+450/550/590/510/420/430/460 appear on: Site C (420), Site D (many), Site B (550), muwrites.dev (550, 590), Site E (450, 550), Site F (510, 590), Site I (450), Site N (450, 550), Site O (450, 550; note says no 600/700), Site G (430, 450, 460).
 
-400/500-only (or 400 only): muratalpay.me, mutype.vercel.app, jakubantalik.com, libraries.dev, rauno.me (400/500). modal.com and transitions.dev use 400/500(/600) without quarter-steps. devouringdetails.com uses 400–700 but not quarter-steps.
+400/500-only (or 400 only): muratalpay.me, mutype.vercel.app, Site J, Site K, Site A (400/500). Site M and Site L use 400/500(/600) without quarter-steps. Site H uses 400–700 but not quarter-steps.
 
 ### 10. OpenType stylistic sets on the main sans, especially Inter `ss03` / `cv01` — **default**
 
-- `"cv01", "ss03"`: emilkowal.ski, linear.app (2)
-- `"ss03"` only: interfere.com, jakub.kr (and benji.org on the script line) (2 + 1)
-- Other sets: muwrites.dev (`ss11`, ligatures off), polar.sh (`ss07`, `ss08`, liga off), modal.com (`cv11` on Diatype, `ss02` on DM Mono), allo specimen (ss01–ss03 etc.)
+- `"cv01", "ss03"`: Site B, Site F (2)
+- `"ss03"` only: Site I, Site N (and Site G on the script line) (2 + 1)
+- Other sets: muwrites.dev (`ss11`, ligatures off), Site E (`ss07`, `ss08`, liga off), Site M (`cv11` on Diatype, `ss02` on DM Mono), Site D (ss01–ss03 etc.)
 
-interfaces.dev feature settings were not in the capture (the manual discusses features, but no computed string was recorded).
+Site O feature settings were not in the capture (the Site O capture discusses features, but no computed string was recorded).
 
 ### 11. Tabular numbers for meters, clocks, IDs, and changing figures — **common**
 
-Observed `tabular-nums` and/or `tnum`: polar.sh, linear.app (`lining-nums tabular-nums`), interfere.com, jakub.kr, jakubantalik.com, muratalpay.me, allo.joshpuckett.me, devouringdetails.com, transitions.dev, benji.org, interfaces.dev (article discusses `tnum`; counted from the capture note).
+Observed `tabular-nums` and/or `tnum`: Site E, Site F (`lining-nums tabular-nums`), Site I, Site N, Site J, muratalpay.me, Site D, Site H, Site L, Site G, Site O (article discusses `tnum`; counted from the capture note).
 
 ### 12. A grey (or alpha-grey) hierarchy of 3+ steps, not only black on white — **strong default**
 
-Nearly every site. Personal/light sites tend to warm near-black on off-white (Emil `253,253,252` / `33,32,28`; Rauno essay `252,252,252` / `23,23,23`; Josh `250,250,250` / `10,10,10`). Product dark sites (Linear, Modal, libraries, muwrites) use a near-white primary plus two or three cooler greys. interfere.com and benji.org lean on **alpha** (`rgba(0,0,0,0.875/0.608/…)` or `rgba(0,0,0,0.85/0.4)`). mutype is a two-color poster (cream on brown) — not really a hierarchy. Polar’s exact background was not recorded, but white vs `rgb(133,133,133)` is a two-step hierarchy.
+Nearly every site. Personal/light sites tend to warm near-black on off-white (Site B `253,253,252` / `33,32,28`; Site A essay `252,252,252` / `23,23,23`; Site C `250,250,250` / `10,10,10`). Product dark sites (Site F, Site M, Site K, muwrites) use a near-white primary plus two or three cooler greys. Site I and Site G lean on **alpha** (`rgba(0,0,0,0.875/0.608/…)` or `rgba(0,0,0,0.85/0.4)`). mutype is a two-color poster (cream on brown) — not really a hierarchy. Site E’s exact background was not recorded, but white vs `rgb(133,133,133)` is a two-step hierarchy.
 
 ### 13. Reading measure roughly 55–66ch / 540–670px on essay-like pages — **default**, plus a few marketing widths
 
-Essay-like: rauno.me 672px / 66.1ch, emilkowal.ski 644px, muwrites.dev 624px / 61.8ch, jakub.kr 644px, joshpuckett.me 548px / 55.6ch, muratalpay.me 560px / 59.3ch, jakubantalik.com 600px, benji.org 550px. Marketing/docs differ (Interfere 448px, Linear ~540–566px, Modal 403px, devouringdetails ~783px, Allo prose 680px). Not measurable or not applicable: mutype, polar, interfaces (unknown).
+Essay-like: Site A 672px / 66.1ch, Site B 644px, muwrites.dev 624px / 61.8ch, Site N 644px, Site C 548px / 55.6ch, muratalpay.me 560px / 59.3ch, Site J 600px, Site G 550px. Marketing/docs differ (Site I 448px, Site F ~540–566px, Site M 403px, Site H ~783px, Site D prose 680px). Not measurable or not applicable: mutype, Site E, Site O (unknown).
 
 ### 14. Essay titles the same size as body, distinguished by weight (and sometimes color) — **occasional**, plus a related case
 
-emilkowal.ski (`h1`/`h2` 16px, weights 600/550), interfaces.dev (`h2` 16/26 w550, same as body; `h1` steps up to 24), jakub.kr (`h1` 17/27.625 w550, same as body), rauno.me essay (`h1` 16px grey w500 vs body 16/28). devouringdetails `h1` is also 18px, same as body, but with tighter lh.
+Site B (`h1`/`h2` 16px, weights 600/550), Site O (`h2` 16/26 w550, same as body; `h1` steps up to 24), Site N (`h1` 17/27.625 w550, same as body), Site A essay (`h1` 16px grey w500 vs body 16/28). Site H `h1` is also 18px, same as body, but with tighter lh.
 
 This is a strong “taste” signal for writing, even if rare on marketing homes.
 
 ### 15. Self-hosted fonts as the default; Google Fonts is the exception — **strong default**
 
-Google Fonts is used on libraries.dev (Inter + Roboto Mono; Saans is self-hosted) and jakubantalik.com (Caveat only; Inter is self-hosted). Everyone else that loaded fonts did so from their own origin or a first-party CDN (`static.linear.app`, `assets.interfere.com`). interfaces.dev loading is unknown. next/font with fallback `size-adjust` is common (Emil, Benji, muwrites, muratalpay, jakub.kr, Josh’s Cormorant).
+Google Fonts is used on Site K (Inter + Roboto Mono; Saans is self-hosted) and Site J (Caveat only; Inter is self-hosted). Everyone else that loaded fonts did so from their own origin or a first-party CDN (Site F’s font host, Site I’s font host). Site O loading is unknown. next/font with fallback `size-adjust` is common (Site B, Site G, muwrites, muratalpay, Site N, Site C’s Cormorant).
 
 ### 16. Underlines are custom (offset and/or muted decoration color), when they appear — **occasional**
 
-rauno.me essay: offset 2px, thickness 1px, color `rgb(23,23,23)`. emilkowal.ski: underline color `rgb(188,187,181)`. jakubantalik.com: decoration color at 30% opacity. libraries.dev and transitions.dev: `text-underline-offset: 2px` (libraries also uses a 50% decoration color). Many sites have no underline in the snapshot (they color or weight links instead). **Hanging punctuation was never observed.**
+Site A essay: offset 2px, thickness 1px, color `rgb(23,23,23)`. Site B: underline color `rgb(188,187,181)`. Site J: decoration color at 30% opacity. Site K and Site L: `text-underline-offset: 2px` (Site K also uses a 50% decoration color). Many sites have no underline in the snapshot (they color or weight links instead). **Hanging punctuation was never observed.**
 
 ### 17. Ligatures often turned off on UI / display faces — **occasional**
 
-muwrites.dev `"calt" 0, "liga" 0`; polar.sh `"liga" 0`; allo specimen can toggle `calt` off. Not a majority, but it is explicit on muwrites.dev and polar.sh.
+muwrites.dev `"calt" 0, "liga" 0`; Site E `"liga" 0`; Site D can toggle `calt` off. Not a majority, but it is explicit on muwrites.dev and Site E.
 
 ---
 
@@ -643,9 +643,9 @@ muwrites.dev `"calt" 0, "liga" 0`; polar.sh `"liga" 0`; allo specimen can toggle
 The densest recipe for **writing / personal sites** in this taste looks like:
 
 - Inter (or Allo / Geist) for UI and often for body; a serif italic only for emphasis; a mono for code and small labels.
-- Prose around 15–17px with line-height **1.6–1.75** (1.625 shows up exactly on interfaces.dev, jakub.kr, and joshpuckett.me).
+- Prose around 15–17px with line-height **1.6–1.75** (1.625 shows up exactly on Site O, Site N, and Site C).
 - A column near **60ch** (roughly 550–670px at these sizes).
-- Headings either slightly larger with **tight lh (~1.0) and negative tracking**, or — in the Emil / typography-manual / jakub.kr essay style — **the same size as the body**, heavier (550–600).
+- Headings either slightly larger with **tight lh (~1.0) and negative tracking**, or — in the Site B / Site O / Site N essay style — **the same size as the body**, heavier (550–600).
 - Intermediate weights (420, 450, 510, 550, 590) rather than jumping to 700.
 - `text-wrap: pretty` / `balance`.
 - Inter features `cv01` and/or `ss03` when Inter is the face; `tabular-nums` wherever numbers change.

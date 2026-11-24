@@ -14,51 +14,51 @@
   --mt-serif-italic: "Newsreader", Georgia, serif;             /* upgrade: Tiempos Text / Heldane Text italic */
   --mt-mono: "Geist Mono", ui-monospace, "SF Mono", monospace; /* upgrade: Berkeley Mono */
   --mt-script: "Caveat", cursive;                               /* or Momo Signature (muratalpay.me) */
-  --mt-features: "cv01", "ss03";                                /* emilkowal.ski, linear */
+  --mt-features: "cv01", "ss03";                                /* Site B, Site F */
 
   /* size / line-height: px pairs, always set together */
-  --mt-prose: 16px;    --mt-prose-lh: 26px;       /* interfaces, joshpuckett */
-  --mt-prose-lg: 17px; --mt-prose-lg-lh: 27.625px; /* jakub.kr */
-  --mt-ui: 15px;       --mt-ui-lh: 24px;          /* linear, interfere */
-  --mt-small: 14px;    --mt-small-lh: 22.75px;    /* interfaces */
-  --mt-meta: 13px;     --mt-meta-lh: 21.125px;    /* jakub.kr */
-  --mt-label: 12px;    --mt-label-lh: 16px;       /* interfaces, jakub.kr */
-  --mt-code: 13px;     --mt-code-lh: 21.125px;    /* jakub.kr, interfaces */
-  --mt-h-step: 24px;   --mt-h-step-lh: 32px;      /* interfaces article h1 */
+  --mt-prose: 16px;    --mt-prose-lh: 26px;       /* Site O, Site C */
+  --mt-prose-lg: 17px; --mt-prose-lg-lh: 27.625px; /* Site N */
+  --mt-ui: 15px;       --mt-ui-lh: 24px;          /* Site F, Site I */
+  --mt-small: 14px;    --mt-small-lh: 22.75px;    /* Site O */
+  --mt-meta: 13px;     --mt-meta-lh: 21.125px;    /* Site N */
+  --mt-label: 12px;    --mt-label-lh: 16px;       /* Site O, Site N */
+  --mt-code: 13px;     --mt-code-lh: 21.125px;    /* Site N, Site O */
+  --mt-h-step: 24px;   --mt-h-step-lh: 32px;      /* Site O article h1 */
   --mt-display: 48px;  --mt-display-lh: 1;        /* muwrites 48/48 */
 
   /* weights: no 600/700 on sans or mono */
   --mt-w-body: 400;    /* everyone */
-  --mt-w-soft: 420;    /* joshpuckett */
-  --mt-w-em: 430;      /* benji, Newsreader italic */
-  --mt-w-ui: 450;      /* interfaces, jakub.kr, polar */
-  --mt-w-medium: 510;  /* linear */
-  --mt-w-heading: 550; /* Emil, jakub.kr, interfaces */
-  --mt-w-display: 590; /* muwrites, linear */
+  --mt-w-soft: 420;    /* Site C */
+  --mt-w-em: 430;      /* Site G, Newsreader italic */
+  --mt-w-ui: 450;      /* Site O, Site N, Site E */
+  --mt-w-medium: 510;  /* Site F */
+  --mt-w-heading: 550; /* Site B, Site N, Site O */
+  --mt-w-display: 590; /* muwrites, Site F */
 
   /* tracking */
-  --mt-track-display: -0.022em; /* muwrites -1.06px @48, linear -1.408px @64 */
-  --mt-track-step: -0.3px;      /* interfaces h1 */
+  --mt-track-display: -0.022em; /* muwrites -1.06px @48, Site F -1.408px @64 */
+  --mt-track-step: -0.3px;      /* Site O h1 */
   --mt-track-label: 0.3px;      /* mono label range 0.3–0.66px */
 
-  --mt-em-size: 1.07em;   /* benji: Newsreader 15px inside 14px body */
+  --mt-em-size: 1.07em;   /* Site G: Newsreader 15px inside 14px body */
   --mt-measure: 644px;    /* range 548–672px */
 
   /* grey ladder, light. contrast on bg in brackets */
-  --mt-bg: #fcfcfc;   /* rauno, jakub.kr rgb(252) */
-  --mt-fg-1: #202020; /* headings, strong, code   jakub.kr lab(12.3)  [15.9] */
-  --mt-fg-2: #424242; /* prose                    jakub.kr lab(28.08) [9.8]  */
-  --mt-fg-3: #6f6f6f; /* secondary, meta, labels  rauno rgb(111)      [4.9]  */
-  --mt-fg-4: #a0a0a0; /* disabled, placeholder    rauno rgb(160)      [2.6, fails AA as text] */
-  --mt-fg-5: #c7c7c7; /* hairlines, underlines    devouringdetails rgb(199) */
+  --mt-bg: #fcfcfc;   /* Site A, Site N rgb(252) */
+  --mt-fg-1: #202020; /* headings, strong, code   Site N lab(12.3)  [15.9] */
+  --mt-fg-2: #424242; /* prose                    Site N lab(28.08) [9.8]  */
+  --mt-fg-3: #6f6f6f; /* secondary, meta, labels  Site A rgb(111)      [4.9]  */
+  --mt-fg-4: #a0a0a0; /* disabled, placeholder    Site A rgb(160)      [2.6, fails AA as text] */
+  --mt-fg-5: #c7c7c7; /* hairlines, underlines    Site H rgb(199) */
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --mt-bg: #121212;   /* libraries.dev rgb(18) */
-    --mt-fg-1: #eeeeee; /* interfaces lab L94 [16.2] */
-    --mt-fg-2: #dadada; /* interfaces lab L87 [13.4] */
-    --mt-fg-3: #b6b6b6; /* interfaces lab L74 [9.2]  */
-    --mt-fg-4: #7c7c7c; /* interfaces lab L52 [4.49, fails AA as text] */
+    --mt-bg: #121212;   /* Site K rgb(18) */
+    --mt-fg-1: #eeeeee; /* Site O lab L94 [16.2] */
+    --mt-fg-2: #dadada; /* Site O lab L87 [13.4] */
+    --mt-fg-3: #b6b6b6; /* Site O lab L74 [9.2]  */
+    --mt-fg-4: #7c7c7c; /* Site O lab L52 [4.49, fails AA as text] */
     --mt-fg-5: #3a3a3a; /* picked by eye */
   }
 }
@@ -82,7 +82,7 @@
   text-underline-offset: 2px; text-decoration-color: var(--mt-fg-5);
   transition: text-decoration-color 150ms ease-out; }
 .mt a:hover { text-decoration-color: currentColor; }
-.mt .script { font-family: var(--mt-script); font-size: 1.333em; font-weight: 700; color: var(--mt-fg-1); } /* devouringdetails Caveat 24px/700 in 18px body */
+.mt .script { font-family: var(--mt-script); font-size: 1.333em; font-weight: 700; color: var(--mt-fg-1); } /* Site H Caveat 24px/700 in 18px body */
 
 /* heading styles: pick ONE per page */
 .mt .mt-h-same { font-size: inherit; line-height: inherit; }
